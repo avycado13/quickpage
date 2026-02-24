@@ -172,6 +172,7 @@ function App() {
 					</div>
 				</SortableContext>
 			</DndContext>
+
 		</div>
 	);
 }
