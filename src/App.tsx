@@ -142,7 +142,6 @@ function App() {
 		setProfile(null);
 		setAccessToken(null);
 		googleLogout();
-
 	}
 
 	return (

@@ -10,6 +10,10 @@ const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
+		<meta
+			name="google-site-verification"
+			content="9m_yKNU69W5Y6Ukdrf5-bFkv8MpooErXyKe43ZYSzPA"
+		/>
 		<QueryClientProvider client={queryClient}>
 			<GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
 				<App />
