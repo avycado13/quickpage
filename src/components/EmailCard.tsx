@@ -1,4 +1,4 @@
-import { Mail } from "lucide-react";
+import { ArrowUpRight, Mail } from "lucide-react";
 import {
 	CardContent,
 	CardDescription,
@@ -18,18 +18,27 @@ export function EmailCard({ emails }: EmailCardProps) {
 		<>
 			<CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
 				<Mail className="h-5 w-5 text-muted-foreground" />
-				<div>
-					<CardTitle>Inbox</CardTitle>
-					<CardDescription>
-						{emails.filter((e) => e.unread).length} unread
-					</CardDescription>
+
+				<div className="flex items-center gap-2">
+					<div>
+						<CardTitle>Inbox</CardTitle>
+						<CardDescription>
+							{emails.filter((e) => e.unread).length} unread
+						</CardDescription>
+					</div>
+					<a href="https://mail.google.com" className="ml-auto">
+						<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+					</a>
 				</div>
 			</CardHeader>
 			<CardContent className="p-0">
 				<ScrollArea className="h-72">
 					{emails.map((email) => (
 						<div key={email.id}>
-							<button className="flex w-full items-start gap-3 px-6 py-3 text-left hover:bg-muted/50 transition-colors">
+							<button
+								type="button"
+								className="flex w-full items-start gap-3 px-6 py-3 text-left hover:bg-muted/50 transition-colors"
+							>
 								{email.unread && (
 									<span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
 								)}

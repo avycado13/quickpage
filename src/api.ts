@@ -50,32 +50,50 @@ export async function fetchAssignments(
 	accessToken: string,
 ): Promise<Assignment[]> {
 	const BASE_URL = "https://classroom.googleapis.com";
-	console.log("[fetchAssignments] starting, accessToken present:", !!accessToken);
+	console.log(
+		"[fetchAssignments] starting, accessToken present:",
+		!!accessToken,
+	);
+
 	const coursesUrl = new URL("/v1/courses", BASE_URL);
 	const coursesParams = new URLSearchParams({ studentId: "me" });
 	coursesParams.append("courseStates", "ACTIVE");
 	coursesParams.append("courseStates", "PROVISIONED");
 	coursesUrl.search = coursesParams.toString();
-	console.log("[fetchAssignments] fetching courses from:", coursesUrl.toString());
+
+	console.log(
+		"[fetchAssignments] fetching courses from:",
+		coursesUrl.toString(),
+	);
 
 	const coursesRes = await fetch(coursesUrl.toString(), {
 		headers: {
 			Authorization: `Bearer ${accessToken}`,
 		},
 	});
+
 	console.log("[fetchAssignments] courses response status:", coursesRes.status);
+
 	if (!coursesRes.ok) {
 		const body = await coursesRes.text();
 		console.error("[fetchAssignments] courses error body:", body);
 		throw new Error("Failed to fetch courses");
 	}
+
 	const coursesData = await coursesRes.json();
-	console.log("[fetchAssignments] coursesData:", coursesData);
-	const courses = coursesData.courses;
-	console.log("[fetchAssignments] courses:", courses);
+	// Added fallback in case the user has 0 active courses
+	const courses = coursesData.courses || [];
+	console.log("[fetchAssignments] courses found:", courses.length);
+
 	const assignments: Assignment[] = [];
+
 	for (const course of courses) {
-		console.log("[fetchAssignments] fetching courseWork for course:", course.id, course.name);
+		console.log(
+			"[fetchAssignments] fetching courseWork for course:",
+			course.id,
+			course.name,
+		);
+
 		const assignmentsUrl = new URL(
 			`/v1/courses/${course.id}/courseWork`,
 			BASE_URL,
@@ -84,23 +102,84 @@ export async function fetchAssignments(
 			orderBy: "dueDate asc",
 			pageSize: Number(10).toString(),
 		}).toString();
-		console.log("[fetchAssignments] courseWork URL:", assignmentsUrl.toString());
+
+		console.log(
+			"[fetchAssignments] courseWork URL:",
+			assignmentsUrl.toString(),
+		);
+
 		const assignmentsRes = await fetch(assignmentsUrl.toString(), {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
 			},
 		});
-		console.log("[fetchAssignments] courseWork response status:", assignmentsRes.status, "for course:", course.id);
+
+		console.log(
+			"[fetchAssignments] courseWork response status:",
+			assignmentsRes.status,
+			"for course:",
+			course.id,
+		);
+
 		if (!assignmentsRes.ok) {
 			const body = await assignmentsRes.text();
-			console.error("[fetchAssignments] courseWork error body:", body, "for course:", course.id);
-			throw new Error("Failed to fetch assignments");
+			console.error(
+				"[fetchAssignments] courseWork error body:",
+				body,
+				"for course:",
+				course.id,
+			);
+			// Changed from throwing an error to 'continue' so one failing course
+			// doesn't break the entire application.
+			continue;
 		}
+
 		const assignmentsData = await assignmentsRes.json();
-		console.log("[fetchAssignments] raw courseWork data for course", course.id, ":", assignmentsData);
 		const courseAssignments = assignmentsData.courseWork;
-		console.log("[fetchAssignments] courseAssignments count:", courseAssignments?.length ?? 0);
+
+		console.log(
+			"[fetchAssignments] courseAssignments count:",
+			courseAssignments?.length ?? 0,
+		);
+
+		// Safeguard against courses with zero assignments
+		if (!courseAssignments) {
+			continue;
+		}
+
 		for (const assignment of courseAssignments) {
+			const submissionUrl = new URL(
+				`/v1/courses/${course.id}/courseWork/${assignment.id}/studentSubmissions`,
+				BASE_URL,
+			);
+			submissionUrl.search = new URLSearchParams({ userId: "me" }).toString();
+
+			const submissionRes = await fetch(submissionUrl.toString(), {
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+				},
+			});
+
+			if (!submissionRes.ok) {
+				console.error(
+					`[fetchAssignments] Failed to fetch submission status for assignment:`,
+					assignment.id,
+				);
+				continue;
+			}
+
+			const submissionData = await submissionRes.json();
+			const submissions = submissionData.studentSubmissions;
+
+			// Determine the submission state
+			const state =
+				submissions && submissions.length > 0 ? submissions[0].state : "NEW";
+
+			// Skip pushing this assignment if it is already turned in or graded
+			if (state === "TURNED_IN" || state === "RETURNED") {
+				continue;
+			}
+
 			assignments.push({
 				id: assignment.id,
 				course: course.name,
@@ -111,8 +190,80 @@ export async function fetchAssignments(
 			});
 		}
 	}
-	console.log("[fetchAssignments] total assignments:", assignments.length, assignments);
+
+	console.log(
+		`[fetchAssignments] finished. Total active assignments found: ${assignments.length}`,
+	);
 	return assignments;
+}
+export type Email = {
+	id: number;
+	from: string;
+	subject: string;
+	time: string;
+	unread: boolean;
+};
+
+export async function fetchEmails(accessToken: string): Promise<Email[]> {
+	const BASE_URL = "https://www.googleapis.com/gmail/v1/users/me";
+
+	console.log("[fetchEmails] starting, accessToken present:", !!accessToken);
+
+	if (!accessToken) {
+		throw new Error("Missing Gmail access token");
+	}
+
+	// 1️⃣ Get message list
+	const listRes = await fetch(`${BASE_URL}/messages?maxResults=10`, {
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+
+	if (!listRes.ok) {
+		throw new Error("Failed to fetch message list");
+	}
+
+	const listData = await listRes.json();
+
+	if (!listData.messages) {
+		return [];
+	}
+
+	// 2️⃣ Fetch metadata for each message
+	const emails: Email[] = await Promise.all(
+		listData.messages.map(async (msg: { id: string }, index: number) => {
+			const msgRes = await fetch(
+				`${BASE_URL}/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+				{
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				},
+			);
+
+			if (!msgRes.ok) {
+				throw new Error(`Failed to fetch message ${msg.id}`);
+			}
+
+			const message = await msgRes.json();
+
+			const headers = message.payload.headers;
+
+			const getHeader = (name: string) =>
+				headers.find((h: any) => h.name === name)?.value ?? "";
+
+			return {
+				id: index,
+				from: getHeader("From"),
+				subject: getHeader("Subject"),
+				time: new Date(getHeader("Date")).toLocaleString(),
+				unread: message.labelIds?.includes("UNREAD") ?? false,
+			};
+		}),
+	);
+
+	return emails;
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -133,7 +284,10 @@ export async function fetchCalendarEvents(
 	accessToken: string,
 ): Promise<CalendarEvent[]> {
 	const BASE_URL = "https://www.googleapis.com/calendar/v3";
-	console.log("[fetchCalendarEvents] starting, accessToken present:", !!accessToken);
+	console.log(
+		"[fetchCalendarEvents] starting, accessToken present:",
+		!!accessToken,
+	);
 	const now = new Date();
 	const timeMin = now.toISOString();
 	const endOfDay = new Date(now);
@@ -175,12 +329,47 @@ export async function fetchCalendarEvents(
 			title: item.summary ?? "(No title)",
 			time: item.start?.dateTime
 				? new Date(item.start.dateTime).toLocaleString()
-				: item.start?.date ?? "",
-			color: item.colorId ? (EVENT_COLORS[item.colorId] ?? "#039be5") : "#039be5",
+				: (item.start?.date ?? ""),
+			color: item.colorId
+				? (EVENT_COLORS[item.colorId] ?? "#039be5")
+				: "#039be5",
 		}),
 	);
 	console.log("[fetchCalendarEvents] mapped events:", events);
 	return events;
+}
+
+export interface WeatherData {
+	temp: number;
+	code: number;
+}
+
+function getCoords(): Promise<{ latitude: number; longitude: number }> {
+	return new Promise((resolve, reject) =>
+		navigator.geolocation.getCurrentPosition(
+			({ coords }) => resolve(coords),
+			reject,
+		),
+	);
+}
+
+export async function fetchWeather(): Promise<WeatherData> {
+	const { latitude, longitude } = await getCoords();
+	const url = new URL("https://api.open-meteo.com/v1/forecast");
+	url.search = new URLSearchParams({
+		latitude: String(latitude),
+		longitude: String(longitude),
+		current: "temperature_2m,weather_code",
+		temperature_unit: "fahrenheit",
+		timezone: "auto",
+	}).toString();
+	const res = await fetch(url.toString());
+	if (!res.ok) throw new Error("Failed to fetch weather");
+	const data = await res.json();
+	return {
+		temp: Math.round(data.current.temperature_2m),
+		code: data.current.weather_code,
+	};
 }
 
 function GoogleDateToLocalDate(
@@ -201,5 +390,5 @@ function GoogleDateToLocalDate(
 	);
 
 	// Convert to user's local time automatically
-	return date.toLocaleString();
+	return date.toISOString();
 }

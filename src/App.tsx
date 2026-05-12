@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import {
 	closestCenter,
@@ -22,6 +22,7 @@ import { CalendarCard } from "@/components/CalendarCard";
 import { ClassroomCard } from "@/components/ClassroomCard";
 import { EmailCard } from "@/components/EmailCard";
 import { Header } from "@/components/Header";
+import { ScratchpadCard } from "@/components/ScratchpadCard";
 import { SortableCard } from "@/components/SortableCard";
 import { TodoCard } from "@/components/TodoCard";
 import { mockEmails } from "@/data/mock";
@@ -116,10 +117,19 @@ function App() {
 			.catch(() => {
 				silentLogin();
 			});
-	}, []);
+	}, [accessToken, silentLogin]);
 
-	const [cardOrder, setCardOrder] = useState<CardId[]>([...defaultCardOrder]);
+	const [cardOrder, setCardOrder] = useState<CardId[]>(() => {
+		const saved = localStorage.getItem("card-order");
 
+		if (!saved) return [...defaultCardOrder];
+
+		try {
+			return JSON.parse(saved) as CardId[];
+		} catch {
+			return [...defaultCardOrder];
+		}
+	});
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
 		useSensor(KeyboardSensor, {
@@ -133,7 +143,9 @@ function App() {
 			setCardOrder((prev) => {
 				const oldIndex = prev.indexOf(active.id as CardId);
 				const newIndex = prev.indexOf(over.id as CardId);
-				return arrayMove(prev, oldIndex, newIndex);
+				const next = arrayMove(prev, oldIndex, newIndex);
+				localStorage.setItem("card-order", JSON.stringify(next));
+				return next;
 			});
 		}
 	}
@@ -200,13 +212,13 @@ function App() {
 									{id === "classroom" && (
 										<ClassroomCard assignments={assignments} />
 									)}
+									{id === "scratchpad" && <ScratchpadCard />}
 								</SortableCard>
 							))}
 						</div>
 					</SortableContext>
 				</DndContext>
 			)}
-
 		</div>
 	);
 }

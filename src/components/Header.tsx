@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Weather } from "@/components/Weather";
 import type { GoogleProfile } from "@/types";
 import { PROFILE_KEY, TOKEN_KEY } from "@/types";
-import { useEffect, useState } from "react";
 
 interface HeaderProps {
 	profile: GoogleProfile | null;
@@ -46,20 +48,25 @@ export function Header({ profile, onLogin, onLogout }: HeaderProps) {
 				<h1 className="text-3xl font-bold tracking-tight">{greeting}</h1>
 				<p className="text-muted-foreground">{dateStr}</p>
 			</div>
-			{profile ? (
-				<Avatar className="cursor-pointer" onClick={handleLogout}>
-					<AvatarImage
-						src={profile.picture}
-						alt={profile.name}
-						referrerPolicy="no-referrer"
-					/>
-					<AvatarFallback>{profile.name?.[0] ?? "U"}</AvatarFallback>
-				</Avatar>
-			) : (
-				<Button variant="outline" onClick={onLogin}>
-					Sign in with Google
-				</Button>
-			)}
+			<div className="flex items-center gap-4">
+				<Weather />
+				<div className="w-px h-4 bg-border" />
+				<ModeToggle />
+				{profile ? (
+					<Avatar className="cursor-pointer" onClick={handleLogout}>
+						<AvatarImage
+							src={profile.picture}
+							alt={profile.name}
+							referrerPolicy="no-referrer"
+						/>
+						<AvatarFallback>{profile.name?.[0] ?? "U"}</AvatarFallback>
+					</Avatar>
+				) : (
+					<Button variant="outline" onClick={onLogin}>
+						Sign in with Google
+					</Button>
+				)}
+			</div>
 		</header>
 	);
 }

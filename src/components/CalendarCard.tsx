@@ -1,4 +1,4 @@
-import { CalendarDays, Clock } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Clock } from "lucide-react";
 import {
 	CardContent,
 	CardDescription,
@@ -17,9 +17,14 @@ export function CalendarCard({ events }: CalendarCardProps) {
 		<>
 			<CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
 				<CalendarDays className="h-5 w-5 text-muted-foreground" />
-				<div>
-					<CardTitle>Today</CardTitle>
-					<CardDescription>{events.length} events</CardDescription>
+				<div className="flex items-center gap-2">
+					<div>
+						<CardTitle>Today</CardTitle>
+						<CardDescription>{events.length} events</CardDescription>
+					</div>
+					<a href="https://calendar.google.com">
+						<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+					</a>
 				</div>
 			</CardHeader>
 			<CardContent className="p-0">

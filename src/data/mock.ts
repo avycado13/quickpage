@@ -44,9 +44,8 @@ export const mockEmails: Email[] = [
 		subject: "Email widget does not work at the moment",
 		time: "10:32 AM",
 		unread: true,
-	}
+	},
 ];
-
 
 export const mockTodos: Todo[] = [
 	{ id: 1, text: "Finish lab report", done: false, priority: "high" },

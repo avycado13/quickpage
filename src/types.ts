@@ -46,6 +46,7 @@ export const defaultCardOrder = [
 	"calendar",
 	"todo",
 	"classroom",
+	"scratchpad",
 ] as const;
 export type CardId = (typeof defaultCardOrder)[number];
 
