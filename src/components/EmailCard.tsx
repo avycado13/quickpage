@@ -26,7 +26,12 @@ export function EmailCard({ emails }: EmailCardProps) {
 							{emails.filter((e) => e.unread).length} unread
 						</CardDescription>
 					</div>
-					<a href="https://mail.google.com" className="ml-auto">
+					<a
+						href="https://mail.google.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="ml-auto"
+					>
 						<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
 					</a>
 				</div>

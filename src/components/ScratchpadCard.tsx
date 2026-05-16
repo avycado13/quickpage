@@ -36,7 +36,11 @@ export function ScratchpadCard() {
 					<button type="reset" onClick={handleClear}>
 						<Trash className="h-5 w-5 text-muted-foreground" />
 					</button>
-					<a href="https://docs.new">
+					<a
+						href="https://docs.google.com"
+						target="_blank"
+						rel="noopener noreferrer"
+					>
 						<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
 					</a>
 				</div>

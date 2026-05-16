@@ -22,7 +22,11 @@ export function CalendarCard({ events }: CalendarCardProps) {
 						<CardTitle>Today</CardTitle>
 						<CardDescription>{events.length} events</CardDescription>
 					</div>
-					<a href="https://calendar.google.com">
+					<a
+						href="https://calendar.google.com"
+						target="_blank"
+						rel="noopener noreferrer"
+					>
 						<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
 					</a>
 				</div>

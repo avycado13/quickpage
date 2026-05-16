@@ -25,7 +25,11 @@ export function ClassroomCard({ assignments }: ClassroomCardProps) {
 						<CardTitle>Classroom</CardTitle>
 						<CardDescription>Upcoming assignments</CardDescription>
 					</div>
-					<a href="https://classroom.google.com">
+					<a
+						href="https://classroom.google.com"
+						target="_blank"
+						rel="noopener noreferrer"
+					>
 						<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
 					</a>
 				</div>
