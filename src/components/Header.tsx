@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ModeToggle } from "@/components/mode-toggle";
+import { UnitToggle } from "@/components/unit-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Weather } from "@/components/Weather";
@@ -50,6 +51,8 @@ export function Header({ profile, onLogin, onLogout }: HeaderProps) {
 			</div>
 			<div className="flex items-center gap-4">
 				<Weather />
+				<div className="w-px h-4 bg-border" />
+				<UnitToggle />
 				<div className="w-px h-4 bg-border" />
 				<ModeToggle />
 				{profile ? (

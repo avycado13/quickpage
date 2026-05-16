@@ -32,6 +32,7 @@ export type CalendarEvent = {
 	id: number;
 	title: string;
 	time: string;
+	isoTime: string;
 	color: string;
 };
 

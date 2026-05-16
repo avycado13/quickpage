@@ -6,6 +6,7 @@ import "./index.css";
 import { Toaster } from "@/components/ui/sonner";
 import App from "./App.tsx";
 import { ThemeProvider } from "./components/theme-provider.tsx";
+import { UnitProvider } from "./components/unit-context.tsx";
 
 const queryClient = new QueryClient();
 
@@ -17,10 +18,12 @@ createRoot(document.getElementById("root")!).render(
 		/>
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-				<GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-					<App />
-					<Toaster />
-				</GoogleOAuthProvider>
+				<UnitProvider>
+					<GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+						<App />
+						<Toaster />
+					</GoogleOAuthProvider>
+				</UnitProvider>
 			</ThemeProvider>
 		</QueryClientProvider>
 	</StrictMode>,
