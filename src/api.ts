@@ -336,7 +336,9 @@ export async function fetchCalendarEvents(
 		}),
 	);
 	console.log("[fetchCalendarEvents] mapped events:", events);
-	return events;
+	return events.sort((a: { isoDate: string }, b: { isoDate: any }) => {
+		return a.isoDate.localeCompare(b.isoDate);
+	});
 }
 
 export interface WeatherData {
