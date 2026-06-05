@@ -1,4 +1,6 @@
 import { ArrowUpRight, CheckSquare } from "lucide-react";
+import { useState } from "react";
+import { markTodoAsDone } from "@/api";
 import { Badge } from "@/components/ui/badge";
 import {
 	CardContent,
@@ -9,14 +11,24 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import type { Todo } from "@/types";
-import { priorityColor } from "@/types";
+import { priorityColor, type Todo } from "@/types";
 
 interface TodoCardProps {
-	todos: Todo[];
+	todosIn: Todo[];
+	accessToken: string;
 }
 
-export function TodoCard({ todos }: TodoCardProps) {
+export function TodoCard({ todosIn, accessToken }: TodoCardProps) {
+	const [todos, setTodos] = useState<Todo[]>(todosIn);
+	const handleCheckedChange = async (todo: Todo, checked: boolean) => {
+		setTodos((prev) =>
+			prev.map((t) => (t.id === todo.id ? { ...t, done: checked } : t)),
+		);
+		if (checked) {
+			await markTodoAsDone(todo, accessToken);
+		}
+	};
+
 	return (
 		<>
 			<CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
@@ -26,9 +38,10 @@ export function TodoCard({ todos }: TodoCardProps) {
 					<div>
 						<CardTitle>To-do</CardTitle>
 						<CardDescription>
-							{todos.filter((t) => !t.done).length} remaining
+							{todos.filter((todo) => !todo.done).length} remaining
 						</CardDescription>
 					</div>
+
 					<a
 						href="https://tasks.google.com"
 						target="_blank"
@@ -38,21 +51,30 @@ export function TodoCard({ todos }: TodoCardProps) {
 					</a>
 				</div>
 			</CardHeader>
+
 			<CardContent className="p-0">
 				<ScrollArea className="h-72">
 					{todos.map((todo) => (
 						<div key={todo.id}>
-							<label className="flex cursor-pointer items-center gap-3 px-6 py-3 hover:bg-muted/50 transition-colors">
-								<Checkbox checked={todo.done} />
+							<div className="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-muted/50">
+								<Checkbox
+									checked={todo.done}
+									onCheckedChange={() => handleCheckedChange(todo, true)}
+								/>
+
 								<span
-									className={`flex-1 text-sm ${todo.done ? "text-muted-foreground line-through" : ""}`}
+									className={`flex-1 text-sm ${
+										todo.done ? "line-through text-muted-foreground" : ""
+									}`}
 								>
 									{todo.text}
 								</span>
+
 								<Badge variant={priorityColor[todo.priority]}>
 									{todo.priority}
 								</Badge>
-							</label>
+							</div>
+
 							<Separator />
 						</div>
 					))}

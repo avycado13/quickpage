@@ -13,6 +13,8 @@ export type Todo = {
 	text: string;
 	done: boolean;
 	priority: TodoPriority;
+	webViewLink: string;
+	listId: number;
 };
 export type TodoList = {
 	id: number;
@@ -48,6 +50,7 @@ export const defaultCardOrder = [
 	"todo",
 	"classroom",
 	"scratchpad",
+	"bookmarks",
 ] as const;
 export type CardId = (typeof defaultCardOrder)[number];
 

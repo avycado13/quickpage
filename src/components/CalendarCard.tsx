@@ -1,4 +1,4 @@
-import { ArrowUpRight, CalendarDays, Clock, SquarePen } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Clock } from "lucide-react";
 import {
 	CardContent,
 	CardDescription,
@@ -36,41 +36,77 @@ export function CalendarCard({ events }: CalendarCardProps) {
 		getDayKey(event.isoTime),
 	);
 
+	/* convert to iterable array */
+	const groupedEntries = Object.entries(groupedEvents).filter(
+		(entry): entry is [string, CalendarEvent[]] => Array.isArray(entry[1]),
+	);
+
+	/* next upcoming event */
+	const nextEvent = sortedEvents.find(
+		(event) => new Date(event.isoTime).getTime() > Date.now(),
+	);
+
+	const nextEventText = nextEvent
+		? (() => {
+				const diffMs = new Date(nextEvent.time).getTime() - Date.now();
+
+				const minutes = Math.floor(diffMs / 1000 / 60);
+
+				if (minutes < 60) {
+					return `${minutes}m`;
+				}
+
+				const hours = Math.floor(minutes / 60);
+				const remainingMinutes = minutes % 60;
+
+				return `${hours}h ${remainingMinutes}m`;
+			})()
+		: "No upcoming events";
+
 	return (
 		<>
 			{/* HEADER */}
-			<CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
-				<CalendarDays className="h-5 w-5 text-muted-foreground" />
-
+			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 				<div className="flex items-center gap-2">
+					<CalendarDays className="h-5 w-5 text-muted-foreground" />
+
 					<div>
 						<CardTitle>Today</CardTitle>
 						<CardDescription>{events.length} events</CardDescription>
 					</div>
-
-					<a
-						href="https://calendar.google.com"
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
-					</a>
 				</div>
+
+				<a
+					href="https://calendar.google.com"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+				</a>
 			</CardHeader>
 
 			{/* CONTENT */}
 			<CardContent className="p-0">
+				<div className="px-6 pb-2 text-sm text-muted-foreground">
+					Next event in: {nextEventText}
+				</div>
+
 				<ScrollArea className="h-72">
-					<div className="px-6 py-3 space-y-4">
-						{Object.entries(groupedEvents).map(([dayKey, dayEvents]) => (
-							<div key={dayKey}>
-								{/* DAY SEPARATOR */}
-								<div className="mb-2 text-xs font-semibold text-muted-foreground">
-									{formatDayLabel(dayEvents![0].time)}
-								</div>{" "}
-								<Separator />
-								<div className="space-y-1">
-									{dayEvents!.map((event) => (
+					<div className="space-y-4 px-6 py-3">
+						{groupedEntries.map(([dayKey, dayEvents]) => (
+							<div key={dayKey} className="space-y-3">
+								{/* DAY HEADER */}
+								<div className="space-y-2">
+									<div className="text-xs font-semibold text-muted-foreground">
+										{formatDayLabel(dayEvents[0].isoTime)}
+									</div>
+
+									<Separator />
+								</div>
+
+								{/* EVENTS */}
+								<div className="space-y-2">
+									{dayEvents.map((event) => (
 										<div
 											key={event.id}
 											className="flex items-start gap-3 rounded-lg border p-3"

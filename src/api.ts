@@ -34,11 +34,18 @@ export async function fetchTodos(accessToken: string): Promise<Todo[]> {
 	}
 	const data = await response.json();
 	console.log("[fetchTodos] raw tasks data:", data);
-	const todos = (data.items ?? []).map(
-		(item: { id: string; title: string; completed?: string }) => ({
+	const todos: Todo[] = (data.items ?? []).map(
+		(item: {
+			id: string;
+			title: string;
+			completed?: string;
+			webViewLink: string;
+		}) => ({
 			id: item.id,
 			text: item.title,
 			done: !!item.completed,
+			webViewLink: item.webViewLink,
+			listId: list.id,
 			priority: "medium" as TodoPriority,
 		}),
 	);
@@ -393,4 +400,28 @@ function GoogleDateToLocalDate(
 
 	// Convert to user's local time automatically
 	return date.toISOString();
+}
+
+export async function markTodoAsDone(todo: Todo, accessToken: string) {
+	const BASE_URL = "https://tasks.googleapis.com/tasks/v1";
+	console.log("[markTodoAsDone] check event recieved");
+	const response = await fetch(
+		`${BASE_URL}/lists/${todo.listId}/tasks/${todo.id}`,
+		{
+			method: "PATCH",
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				status: "completed",
+			}),
+		},
+	);
+	console.log("[markTodoAsDone] response recieved");
+	if (!response.ok) {
+		const body = await response.text();
+		console.error("[markTodoAsDone] lists error body:", body);
+		throw new Error("Failed to markTodoAsDone");
+	}
 }

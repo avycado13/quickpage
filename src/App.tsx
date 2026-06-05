@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import "./App.css";
 import {
 	closestCenter,
@@ -34,6 +34,7 @@ import {
 	TOKEN_KEY,
 } from "@/types";
 import { fetchAssignments, fetchCalendarEvents, fetchTodos } from "./api";
+import { BookmarkCard } from "./components/BookmarksCard";
 
 function App() {
 	const [profile, setProfile] = useState<GoogleProfile | null>(() => {
@@ -59,6 +60,13 @@ function App() {
 		queryFn: () => fetchCalendarEvents(accessToken || ""),
 		enabled: !!accessToken,
 	});
+
+	const clearGoogleAuth = useCallback(() => {
+		setProfile(null);
+		setAccessToken(null);
+		localStorage.removeItem(TOKEN_KEY);
+		localStorage.removeItem(PROFILE_KEY);
+	}, []);
 
 	const handleLoginSuccess = useCallback(
 		async (tokenResponse: { access_token: string }) => {
@@ -91,41 +99,15 @@ function App() {
 		},
 	});
 
-	const silentLogin = useGoogleLogin({
-		scope:
-			"openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/calendar.readonly",
-		prompt: "",
-		onSuccess: handleLoginSuccess,
-		onError: () => {
-			setAccessToken(null);
-			setProfile(null);
-			localStorage.removeItem(TOKEN_KEY);
-			localStorage.removeItem(PROFILE_KEY);
-		},
-	});
-
-	useEffect(() => {
-		if (!accessToken) return;
-		fetch(
-			`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`,
-		)
-			.then((res) => {
-				if (!res.ok) {
-					silentLogin();
-				}
-			})
-			.catch(() => {
-				silentLogin();
-			});
-	}, [accessToken, silentLogin]);
-
 	const [cardOrder, setCardOrder] = useState<CardId[]>(() => {
 		const saved = localStorage.getItem("card-order");
 
 		if (!saved) return [...defaultCardOrder];
 
 		try {
-			return JSON.parse(saved) as CardId[];
+			const parsed = JSON.parse(saved) as CardId[];
+			const missing = defaultCardOrder.filter((id) => !parsed.includes(id));
+			return [...parsed, ...missing];
 		} catch {
 			return [...defaultCardOrder];
 		}
@@ -151,8 +133,7 @@ function App() {
 	}
 
 	function handleLogout() {
-		setProfile(null);
-		setAccessToken(null);
+		clearGoogleAuth();
 		googleLogout();
 	}
 
@@ -208,11 +189,15 @@ function App() {
 									{id === "calendar" && (
 										<CalendarCard events={calendarEvents} />
 									)}
-									{id === "todo" && <TodoCard todos={todos} />}
+									{id === "todo" && (
+										<TodoCard todosIn={todos} accessToken={accessToken ?? ""} />
+									)}
 									{id === "classroom" && (
 										<ClassroomCard assignments={assignments} />
 									)}
 									{id === "scratchpad" && <ScratchpadCard />}
+
+									{id === "bookmarks" && <BookmarkCard />}
 								</SortableCard>
 							))}
 						</div>

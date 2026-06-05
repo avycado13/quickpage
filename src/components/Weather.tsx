@@ -26,13 +26,19 @@ export function Weather() {
 	if (!data || isError) return null;
 
 	const { label, Icon } = weatherInfo(data.code);
-	const temp = unit === "F" ? Math.round(data.temp) : Math.round((data.temp - 32) * (5 / 9));
+	const temp =
+		unit === "F"
+			? Math.round(data.temp)
+			: Math.round((data.temp - 32) * (5 / 9));
 	const unitSymbol = unit === "F" ? "°F" : "°C";
 
 	return (
 		<div className="flex items-center gap-1.5 text-sm text-muted-foreground">
 			<Icon className="h-4 w-4" />
-			<span>{temp}{unitSymbol}</span>
+			<span>
+				{temp}
+				{unitSymbol}
+			</span>
 			<span className="hidden sm:inline">· {label}</span>
 		</div>
 	);

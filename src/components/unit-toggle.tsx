@@ -1,5 +1,4 @@
 import { Cloud } from "lucide-react";
-import { useUnit } from "@/components/unit-context";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -7,6 +6,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useUnit } from "@/components/unit-context";
 
 export function UnitToggle() {
 	const { unit, setUnit } = useUnit();

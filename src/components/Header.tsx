@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ModeToggle } from "@/components/mode-toggle";
-import { UnitToggle } from "@/components/unit-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { UnitToggle } from "@/components/unit-toggle";
 import { Weather } from "@/components/Weather";
 import type { GoogleProfile } from "@/types";
 import { PROFILE_KEY, TOKEN_KEY } from "@/types";
