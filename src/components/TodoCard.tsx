@@ -1,5 +1,5 @@
 import { ArrowUpRight, CheckSquare } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { markTodoAsDone } from "@/api";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,6 +20,11 @@ interface TodoCardProps {
 
 export function TodoCard({ todosIn, accessToken }: TodoCardProps) {
 	const [todos, setTodos] = useState<Todo[]>(todosIn);
+
+	useEffect(() => {
+		setTodos(todosIn);
+	}, [todosIn]);
+
 	const handleCheckedChange = async (todo: Todo, checked: boolean) => {
 		setTodos((prev) =>
 			prev.map((t) => (t.id === todo.id ? { ...t, done: checked } : t)),

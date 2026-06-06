@@ -1,7 +1,14 @@
-import type { Assignment, CalendarEvent, Todo, TodoPriority } from "./types";
+import type {
+	Assignment,
+	CalendarEvent,
+	Todo,
+	TodoList,
+	TodoPriority,
+} from "./types";
 
 export async function fetchTodos(accessToken: string): Promise<Todo[]> {
 	const BASE_URL = "https://tasks.googleapis.com";
+	const todos: Todo[] = [];
 	console.log("[fetchTodos] starting, accessToken present:", !!accessToken);
 	const lists = await fetch(`${BASE_URL}/tasks/v1/users/@me/lists`, {
 		headers: {
@@ -16,39 +23,41 @@ export async function fetchTodos(accessToken: string): Promise<Todo[]> {
 	}
 	const listsData = await lists.json();
 	console.log("[fetchTodos] listsData:", listsData);
-	const list = listsData.items[0];
-	console.log("[fetchTodos] selected list:", list);
-	const response = await fetch(
-		`${BASE_URL}/tasks/v1/lists/${list.id}/tasks?showCompleted=false`,
-		{
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
+	for (const list of listsData.items) {
+		console.log("[fetchTodos] selected list:", list);
+		const response = await fetch(
+			`${BASE_URL}/tasks/v1/lists/${list.id}/tasks?showCompleted=false`,
+			{
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+				},
 			},
-		},
-	);
-	console.log("[fetchTodos] tasks response status:", response.status);
-	if (!response.ok) {
-		const body = await response.text();
-		console.error("[fetchTodos] tasks error body:", body);
-		throw new Error("Failed to fetch todos");
+		);
+		console.log("[fetchTodos] tasks response status:", response.status);
+		if (!response.ok) {
+			const body = await response.text();
+			console.error("[fetchTodos] tasks error body:", body);
+			throw new Error("Failed to fetch todos");
+		}
+		const data = await response.json();
+		console.log("[fetchTodos] raw tasks data:", data);
+		const newTodos: Todo[] = (data.items ?? []).map(
+			(item: {
+				id: string;
+				title: string;
+				completed?: string;
+				webViewLink: string;
+			}) => ({
+				id: item.id,
+				text: item.title,
+				done: !!item.completed,
+				webViewLink: item.webViewLink,
+				listId: list.id,
+				priority: "medium" as TodoPriority,
+			}),
+		);
+		todos.push(...newTodos);
 	}
-	const data = await response.json();
-	console.log("[fetchTodos] raw tasks data:", data);
-	const todos: Todo[] = (data.items ?? []).map(
-		(item: {
-			id: string;
-			title: string;
-			completed?: string;
-			webViewLink: string;
-		}) => ({
-			id: item.id,
-			text: item.title,
-			done: !!item.completed,
-			webViewLink: item.webViewLink,
-			listId: list.id,
-			priority: "medium" as TodoPriority,
-		}),
-	);
 	console.log("[fetchTodos] mapped todos:", todos);
 	return todos;
 }

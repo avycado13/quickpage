@@ -54,6 +54,15 @@ export const defaultCardOrder = [
 ] as const;
 export type CardId = (typeof defaultCardOrder)[number];
 
+export const cardLabels: Record<CardId, string> = {
+	email: "Inbox",
+	calendar: "Today",
+	todo: "To-do",
+	classroom: "Classroom",
+	scratchpad: "Scratchpad",
+	bookmarks: "Bookmarks",
+};
+
 export const priorityColor: Record<
 	TodoPriority,
 	"destructive" | "secondary" | "outline"

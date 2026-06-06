@@ -5,16 +5,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { UnitToggle } from "@/components/unit-toggle";
 import { Weather } from "@/components/Weather";
-import type { GoogleProfile } from "@/types";
+import type { CardId, GoogleProfile } from "@/types";
 import { PROFILE_KEY, TOKEN_KEY } from "@/types";
+import { SettingsDialog } from "./SettingsDialog";
 
 interface HeaderProps {
 	profile: GoogleProfile | null;
 	onLogin: () => void;
 	onLogout: () => void;
+	visibleCards: Record<CardId, boolean>;
+	onVisibleCardsChange: (visibleCards: Record<CardId, boolean>) => void;
 }
 
-export function Header({ profile, onLogin, onLogout }: HeaderProps) {
+export function Header({
+	profile,
+	onLogin,
+	onLogout,
+	visibleCards,
+	onVisibleCardsChange,
+}: HeaderProps) {
 	const [now, setNow] = useState(new Date());
 
 	useEffect(() => {
@@ -55,6 +64,10 @@ export function Header({ profile, onLogin, onLogout }: HeaderProps) {
 				<UnitToggle />
 				<div className="w-px h-4 bg-border" />
 				<ModeToggle />
+				<SettingsDialog
+					visibleCards={visibleCards}
+					onVisibleCardsChange={onVisibleCardsChange}
+				/>
 				{profile ? (
 					<Avatar className="cursor-pointer" onClick={handleLogout}>
 						<AvatarImage

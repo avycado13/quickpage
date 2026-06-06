@@ -37,6 +37,21 @@ import { fetchAssignments, fetchCalendarEvents, fetchTodos } from "./api";
 import { BookmarkCard } from "./components/BookmarksCard";
 
 function App() {
+	const [visibleCards, setVisibleCards] = useState<Record<CardId, boolean>>(() => {
+		const saved = localStorage.getItem("visible-cards");
+		const defaults = Object.fromEntries(
+			defaultCardOrder.map((id) => [id, true]),
+		) as Record<CardId, boolean>;
+
+		if (!saved) return defaults;
+
+		try {
+			return { ...defaults, ...JSON.parse(saved) };
+		} catch {
+			return defaults;
+		}
+	});
+
 	const [profile, setProfile] = useState<GoogleProfile | null>(() => {
 		const stored = localStorage.getItem(PROFILE_KEY);
 		return stored ? JSON.parse(stored) : null;
@@ -137,12 +152,21 @@ function App() {
 		googleLogout();
 	}
 
+	function handleVisibleCardsChange(nextVisibleCards: Record<CardId, boolean>) {
+		setVisibleCards(nextVisibleCards);
+		localStorage.setItem("visible-cards", JSON.stringify(nextVisibleCards));
+	}
+
+	const dashboardCards = cardOrder.filter((id) => visibleCards[id]);
+
 	return (
 		<div className="min-h-screen bg-background p-6 md:p-10">
 			<Header
 				profile={profile}
 				onLogin={() => login()}
 				onLogout={handleLogout}
+				visibleCards={visibleCards}
+				onVisibleCardsChange={handleVisibleCardsChange}
 			/>
 
 			{!profile ? (
@@ -181,9 +205,9 @@ function App() {
 					collisionDetection={closestCenter}
 					onDragEnd={handleDragEnd}
 				>
-					<SortableContext items={cardOrder} strategy={rectSortingStrategy}>
+					<SortableContext items={dashboardCards} strategy={rectSortingStrategy}>
 						<div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-							{cardOrder.map((id) => (
+							{dashboardCards.map((id) => (
 								<SortableCard key={id} id={id}>
 									{id === "email" && <EmailCard emails={mockEmails} />}
 									{id === "calendar" && (
@@ -200,6 +224,11 @@ function App() {
 									{id === "bookmarks" && <BookmarkCard />}
 								</SortableCard>
 							))}
+							{dashboardCards.length === 0 && (
+								<div className="col-span-full rounded-lg border p-8 text-center text-muted-foreground">
+									All cards are hidden. Open Settings to show cards again.
+								</div>
+							)}
 						</div>
 					</SortableContext>
 				</DndContext>
