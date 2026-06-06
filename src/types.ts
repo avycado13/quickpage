@@ -15,6 +15,7 @@ export type Todo = {
 	priority: TodoPriority;
 	webViewLink: string;
 	listId: number;
+	badge?: "destructive" | "secondary" | "outline";
 };
 export type TodoList = {
 	id: number;

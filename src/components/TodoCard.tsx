@@ -1,6 +1,7 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight, CheckSquare } from "lucide-react";
-import { useEffect, useState } from "react";
-import { markTodoAsDone } from "@/api";
+import { useMemo } from "react";
+import { fetchTodos, markTodoAsDone } from "@/api";
 import { Badge } from "@/components/ui/badge";
 import {
 	CardContent,
@@ -11,28 +12,37 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { priorityColor, type Todo } from "@/types";
+import type { Todo } from "@/types";
+import { useAuth } from "./AuthProvider";
 
-interface TodoCardProps {
-	todosIn: Todo[];
-	accessToken: string;
-}
+export function TodoCard() {
+	const { accessToken } = useAuth();
+	const { data: todos = [] } = useQuery({
+		queryKey: ["todos", accessToken],
+		queryFn: () => fetchTodos(accessToken || ""),
+		enabled: !!accessToken,
+	});
+	const queryClient = useQueryClient();
 
-export function TodoCard({ todosIn, accessToken }: TodoCardProps) {
-	const [todos, setTodos] = useState<Todo[]>(todosIn);
+	const markDoneMutation = useMutation({
+		mutationFn: (todo: Todo) => markTodoAsDone(todo, accessToken || ""),
 
-	useEffect(() => {
-		setTodos(todosIn);
-	}, [todosIn]);
+		onMutate: async (todo) => {
+			queryClient.setQueryData<Todo[]>(["todos", accessToken], (old = []) =>
+				old.map((t) => (t.id === todo.id ? { ...t, done: true } : t)),
+			);
+		},
 
-	const handleCheckedChange = async (todo: Todo, checked: boolean) => {
-		setTodos((prev) =>
-			prev.map((t) => (t.id === todo.id ? { ...t, done: checked } : t)),
-		);
-		if (checked) {
-			await markTodoAsDone(todo, accessToken);
-		}
-	};
+		onSettled: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["todos", accessToken],
+			});
+		},
+	});
+	const remainingCount = useMemo(
+		() => todos.filter((todo) => !todo.done).length,
+		[todos],
+	);
 
 	return (
 		<>
@@ -42,9 +52,7 @@ export function TodoCard({ todosIn, accessToken }: TodoCardProps) {
 				<div className="flex items-center gap-2">
 					<div>
 						<CardTitle>To-do</CardTitle>
-						<CardDescription>
-							{todos.filter((todo) => !todo.done).length} remaining
-						</CardDescription>
+						<CardDescription>{remainingCount} remaining</CardDescription>
 					</div>
 
 					<a
@@ -64,7 +72,7 @@ export function TodoCard({ todosIn, accessToken }: TodoCardProps) {
 							<div className="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-muted/50">
 								<Checkbox
 									checked={todo.done}
-									onCheckedChange={() => handleCheckedChange(todo, true)}
+									onCheckedChange={() => markDoneMutation.mutate(todo)}
 								/>
 
 								<span
@@ -75,9 +83,7 @@ export function TodoCard({ todosIn, accessToken }: TodoCardProps) {
 									{todo.text}
 								</span>
 
-								<Badge variant={priorityColor[todo.priority]}>
-									{todo.priority}
-								</Badge>
+								<Badge variant={todo.badge}>{todo.priority}</Badge>
 							</div>
 
 							<Separator />

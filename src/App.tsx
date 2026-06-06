@@ -16,8 +16,8 @@ import {
 	sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { googleLogout, useGoogleLogin } from "@react-oauth/google";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/components/AuthProvider";
 import { CalendarCard } from "@/components/CalendarCard";
 import { ClassroomCard } from "@/components/ClassroomCard";
 import { EmailCard } from "@/components/EmailCard";
@@ -31,62 +31,42 @@ import {
 	defaultCardOrder,
 	type GoogleProfile,
 	PROFILE_KEY,
-	TOKEN_KEY,
 } from "@/types";
-import { fetchAssignments, fetchCalendarEvents, fetchTodos } from "./api";
 import { BookmarkCard } from "./components/BookmarksCard";
 
 function App() {
-	const [visibleCards, setVisibleCards] = useState<Record<CardId, boolean>>(() => {
-		const saved = localStorage.getItem("visible-cards");
-		const defaults = Object.fromEntries(
-			defaultCardOrder.map((id) => [id, true]),
-		) as Record<CardId, boolean>;
+	const { setAccessToken } = useAuth();
+	const [visibleCards, setVisibleCards] = useState<Record<CardId, boolean>>(
+		() => {
+			const saved = localStorage.getItem("visible-cards");
+			const defaults = Object.fromEntries(
+				defaultCardOrder.map((id) => [id, true]),
+			) as Record<CardId, boolean>;
 
-		if (!saved) return defaults;
+			if (!saved) return defaults;
 
-		try {
-			return { ...defaults, ...JSON.parse(saved) };
-		} catch {
-			return defaults;
-		}
-	});
+			try {
+				return { ...defaults, ...JSON.parse(saved) };
+			} catch {
+				return defaults;
+			}
+		},
+	);
 
 	const [profile, setProfile] = useState<GoogleProfile | null>(() => {
 		const stored = localStorage.getItem(PROFILE_KEY);
 		return stored ? JSON.parse(stored) : null;
 	});
 
-	const [accessToken, setAccessToken] = useState<string | null>(() =>
-		localStorage.getItem(TOKEN_KEY),
-	);
-	const { data: todos = [] } = useQuery({
-		queryKey: ["todos", accessToken],
-		queryFn: () => fetchTodos(accessToken || ""),
-		enabled: !!accessToken,
-	});
-	const { data: assignments = [] } = useQuery({
-		queryKey: ["assignments", accessToken],
-		queryFn: () => fetchAssignments(accessToken || ""),
-		enabled: !!accessToken,
-	});
-	const { data: calendarEvents = [] } = useQuery({
-		queryKey: ["calendarEvents", accessToken],
-		queryFn: () => fetchCalendarEvents(accessToken || ""),
-		enabled: !!accessToken,
-	});
-
 	const clearGoogleAuth = useCallback(() => {
 		setProfile(null);
 		setAccessToken(null);
-		localStorage.removeItem(TOKEN_KEY);
 		localStorage.removeItem(PROFILE_KEY);
-	}, []);
+	}, [setAccessToken]);
 
 	const handleLoginSuccess = useCallback(
 		async (tokenResponse: { access_token: string }) => {
 			try {
-				localStorage.setItem(TOKEN_KEY, tokenResponse.access_token);
 				setAccessToken(tokenResponse.access_token);
 				const res = await fetch(
 					"https://www.googleapis.com/oauth2/v3/userinfo",
@@ -101,7 +81,7 @@ function App() {
 				console.log("Failed to fetch user info");
 			}
 		},
-		[],
+		[setAccessToken],
 	);
 
 	const login = useGoogleLogin({
@@ -147,15 +127,21 @@ function App() {
 		}
 	}
 
-	function handleLogout() {
+	const handleLogout = useCallback(() => {
 		clearGoogleAuth();
 		googleLogout();
-	}
+	}, [clearGoogleAuth]);
 
-	function handleVisibleCardsChange(nextVisibleCards: Record<CardId, boolean>) {
-		setVisibleCards(nextVisibleCards);
-		localStorage.setItem("visible-cards", JSON.stringify(nextVisibleCards));
-	}
+	const handleVisibleCardsChange = useCallback(
+		(nextVisibleCards: Record<CardId, boolean>) => {
+			setVisibleCards(nextVisibleCards);
+			localStorage.setItem("visible-cards", JSON.stringify(nextVisibleCards));
+		},
+		[],
+	);
+	const handleLogin = useCallback(() => {
+		login();
+	}, [login]);
 
 	const dashboardCards = cardOrder.filter((id) => visibleCards[id]);
 
@@ -163,7 +149,7 @@ function App() {
 		<div className="min-h-screen bg-background p-6 md:p-10">
 			<Header
 				profile={profile}
-				onLogin={() => login()}
+				onLogin={handleLogin}
 				onLogout={handleLogout}
 				visibleCards={visibleCards}
 				onVisibleCardsChange={handleVisibleCardsChange}
@@ -205,20 +191,17 @@ function App() {
 					collisionDetection={closestCenter}
 					onDragEnd={handleDragEnd}
 				>
-					<SortableContext items={dashboardCards} strategy={rectSortingStrategy}>
+					<SortableContext
+						items={dashboardCards}
+						strategy={rectSortingStrategy}
+					>
 						<div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
 							{dashboardCards.map((id) => (
 								<SortableCard key={id} id={id}>
 									{id === "email" && <EmailCard emails={mockEmails} />}
-									{id === "calendar" && (
-										<CalendarCard events={calendarEvents} />
-									)}
-									{id === "todo" && (
-										<TodoCard todosIn={todos} accessToken={accessToken ?? ""} />
-									)}
-									{id === "classroom" && (
-										<ClassroomCard assignments={assignments} />
-									)}
+									{id === "calendar" && <CalendarCard />}
+									{id === "todo" && <TodoCard />}
+									{id === "classroom" && <ClassroomCard />}
 									{id === "scratchpad" && <ScratchpadCard />}
 
 									{id === "bookmarks" && <BookmarkCard />}

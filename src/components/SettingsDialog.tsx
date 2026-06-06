@@ -1,3 +1,4 @@
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -5,17 +6,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cardLabels, type CardId, defaultCardOrder } from "@/types";
+import { type CardId, cardLabels, defaultCardOrder } from "@/types";
 import { Button } from "./ui/button";
-import {
-	SidebarContent,
-	SidebarFooter,
-	SidebarGroup,
-	SidebarGroupLabel,
-	SidebarHeader,
-	SidebarProvider,
-} from "./ui/sidebar";
 
 interface SettingsDialogProps {
 	visibleCards: Record<CardId, boolean>;

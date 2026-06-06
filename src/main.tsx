@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { Toaster } from "@/components/ui/sonner";
 import App from "./App.tsx";
+import { AuthProvider } from "./components/AuthProvider.tsx";
 import { ThemeProvider } from "./components/theme-provider.tsx";
 import { UnitProvider } from "./components/unit-context.tsx";
 
@@ -19,10 +20,14 @@ createRoot(document.getElementById("root")!).render(
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
 				<UnitProvider>
-					<GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-						<App />
-						<Toaster />
-					</GoogleOAuthProvider>
+					<AuthProvider>
+						<GoogleOAuthProvider
+							clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
+						>
+							<App />
+							<Toaster />
+						</GoogleOAuthProvider>
+					</AuthProvider>
 				</UnitProvider>
 			</ThemeProvider>
 		</QueryClientProvider>

@@ -1,4 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CalendarDays, Clock } from "lucide-react";
+import { useMemo } from "react";
+import { fetchCalendarEvents } from "@/api";
 import {
 	CardContent,
 	CardDescription,
@@ -7,11 +10,8 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { CalendarEvent } from "@/types";
+import { useAuth } from "./AuthProvider";
 import { Separator } from "./ui/separator";
-
-interface CalendarCardProps {
-	events: CalendarEvent[];
-}
 
 function formatDayLabel(iso: string) {
 	return new Date(iso).toLocaleDateString(undefined, {
@@ -25,21 +25,31 @@ function getDayKey(iso: string) {
 	return new Date(iso).toDateString();
 }
 
-export function CalendarCard({ events }: CalendarCardProps) {
+export function CalendarCard() {
+	const { accessToken } = useAuth();
+	const { data: events = [] } = useQuery({
+		queryKey: ["calendarEvents", accessToken],
+		queryFn: () => fetchCalendarEvents(accessToken || ""),
+		enabled: !!accessToken,
+	});
 	/* sort events chronologically */
-	const sortedEvents = [...events].sort(
-		(a, b) => new Date(a.isoTime).getTime() - new Date(b.isoTime).getTime(),
-	);
 
+	const sortedEvents = useMemo(() => {
+		return [...events].sort(
+			(a, b) => new Date(a.isoTime).getTime() - new Date(b.isoTime).getTime(),
+		);
+	}, [events]);
 	/* group events by day */
-	const groupedEvents = Object.groupBy(sortedEvents, (event) =>
-		getDayKey(event.isoTime),
-	);
+	const groupedEvents = useMemo(() => {
+		return Object.groupBy(sortedEvents, (event) => getDayKey(event.isoTime));
+	}, [sortedEvents]);
 
 	/* convert to iterable array */
-	const groupedEntries = Object.entries(groupedEvents).filter(
-		(entry): entry is [string, CalendarEvent[]] => Array.isArray(entry[1]),
-	);
+	const groupedEntries = useMemo(() => {
+		return Object.entries(groupedEvents).filter(
+			(entry): entry is [string, CalendarEvent[]] => Array.isArray(entry[1]),
+		);
+	}, [groupedEvents]);
 
 	/* next upcoming event */
 	const nextEvent = sortedEvents.find(

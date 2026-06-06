@@ -1,9 +1,9 @@
-import type {
-	Assignment,
-	CalendarEvent,
-	Todo,
-	TodoList,
-	TodoPriority,
+import {
+	type Assignment,
+	type CalendarEvent,
+	priorityColor,
+	type Todo,
+	type TodoPriority,
 } from "./types";
 
 export async function fetchTodos(accessToken: string): Promise<Todo[]> {
@@ -41,11 +41,12 @@ export async function fetchTodos(accessToken: string): Promise<Todo[]> {
 		}
 		const data = await response.json();
 		console.log("[fetchTodos] raw tasks data:", data);
+
 		const newTodos: Todo[] = (data.items ?? []).map(
 			(item: {
 				id: string;
 				title: string;
-				completed?: string;
+				completed?: boolean; // usually boolean, not string
 				webViewLink: string;
 			}) => ({
 				id: item.id,
@@ -54,6 +55,7 @@ export async function fetchTodos(accessToken: string): Promise<Todo[]> {
 				webViewLink: item.webViewLink,
 				listId: list.id,
 				priority: "medium" as TodoPriority,
+				badge: priorityColor.medium,
 			}),
 		);
 		todos.push(...newTodos);
