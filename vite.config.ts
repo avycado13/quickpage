@@ -20,4 +20,14 @@ export default defineConfig({
 			"@": path.resolve(__dirname, "./src"),
 		},
 	},
+	build: {
+		minify: "terser",
+		terserOptions: {
+			compress: {
+				// Drop noisy debug logging in production, keep warn/error.
+				drop_debugger: true,
+				pure_funcs: ["console.log", "console.debug", "console.info"],
+			},
+		},
+	},
 });

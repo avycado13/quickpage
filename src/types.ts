@@ -9,22 +9,22 @@ export type Email = {
 export type TodoPriority = "high" | "medium" | "low";
 
 export type Todo = {
-	id: number;
+	id: string;
 	text: string;
 	done: boolean;
 	priority: TodoPriority;
 	webViewLink: string;
-	listId: number;
+	listId: string;
 	badge?: "destructive" | "secondary" | "outline";
 };
 export type TodoList = {
-	id: number;
+	id: string;
 	title: string;
 	todos: Todo[];
 };
 
 export type Assignment = {
-	id: number;
+	id: string;
 	course: string;
 	title: string;
 	due: string;
@@ -37,6 +37,7 @@ export type CalendarEvent = {
 	time: string;
 	isoTime: string;
 	color: string;
+	calendarName: string;
 };
 
 export interface GoogleProfile {

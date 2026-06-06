@@ -37,9 +37,13 @@ export const Header = React.memo(function Header({
 	}, [onLogout]);
 	return (
 		<header className="mb-8 flex items-center justify-between">
-			<Clock />
+			<div className="tabular-nums">
+				<Clock />
+			</div>{" "}
 			<div className="flex items-center gap-4">
-				<Weather />
+				<div className="w-32">
+					<Weather />
+				</div>{" "}
 				<div className="w-px h-4 bg-border" />
 				<UnitToggle />
 				<div className="w-px h-4 bg-border" />

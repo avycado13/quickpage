@@ -58,7 +58,7 @@ export function CalendarCard() {
 
 	const nextEventText = nextEvent
 		? (() => {
-				const diffMs = new Date(nextEvent.time).getTime() - Date.now();
+				const diffMs = new Date(nextEvent.isoTime).getTime() - Date.now();
 
 				const minutes = Math.floor(diffMs / 1000 / 60);
 
@@ -122,7 +122,8 @@ export function CalendarCard() {
 											className="flex items-start gap-3 rounded-lg border p-3"
 										>
 											<div
-												className={`mt-0.5 h-3 w-3 shrink-0 rounded-full ${event.color}`}
+												className="mt-0.5 h-3 w-3 shrink-0 rounded-full"
+												style={{ backgroundColor: event.color }}
 											/>
 
 											<div className="min-w-0 flex-1">
@@ -131,6 +132,12 @@ export function CalendarCard() {
 												<p className="flex items-center gap-1 text-xs text-muted-foreground">
 													<Clock className="h-3 w-3" />
 													{event.time}
+													{event.calendarName && (
+														<>
+															<span className="mx-0.5">·</span>
+															{event.calendarName}
+														</>
+													)}
 												</p>
 											</div>
 										</div>

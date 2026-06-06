@@ -8,7 +8,6 @@ import {
 
 export async function fetchTodos(accessToken: string): Promise<Todo[]> {
 	const BASE_URL = "https://tasks.googleapis.com";
-	const todos: Todo[] = [];
 	console.log("[fetchTodos] starting, accessToken present:", !!accessToken);
 	const lists = await fetch(`${BASE_URL}/tasks/v1/users/@me/lists`, {
 		headers: {
@@ -16,6 +15,7 @@ export async function fetchTodos(accessToken: string): Promise<Todo[]> {
 		},
 	});
 	console.log("[fetchTodos] lists response status:", lists.status);
+	if (lists.status === 401) throw new Error("UNAUTHENTICATED");
 	if (!lists.ok) {
 		const body = await lists.text();
 		console.error("[fetchTodos] lists error body:", body);
@@ -23,45 +23,58 @@ export async function fetchTodos(accessToken: string): Promise<Todo[]> {
 	}
 	const listsData = await lists.json();
 	console.log("[fetchTodos] listsData:", listsData);
-	for (const list of listsData.items) {
-		console.log("[fetchTodos] selected list:", list);
-		const response = await fetch(
-			`${BASE_URL}/tasks/v1/lists/${list.id}/tasks?showCompleted=false`,
-			{
-				headers: {
-					Authorization: `Bearer ${accessToken}`,
-				},
-			},
-		);
-		console.log("[fetchTodos] tasks response status:", response.status);
-		if (!response.ok) {
-			const body = await response.text();
-			console.error("[fetchTodos] tasks error body:", body);
-			throw new Error("Failed to fetch todos");
-		}
-		const data = await response.json();
-		console.log("[fetchTodos] raw tasks data:", data);
 
-		const newTodos: Todo[] = (data.items ?? []).map(
-			(item: {
-				id: string;
-				title: string;
-				completed?: boolean; // usually boolean, not string
-				webViewLink: string;
-			}) => ({
-				id: item.id,
-				text: item.title,
-				done: !!item.completed,
-				webViewLink: item.webViewLink,
-				listId: list.id,
-				priority: "medium" as TodoPriority,
-				badge: priorityColor.medium,
-			}),
-		);
-		todos.push(...newTodos);
-	}
+	// Fetch every list's tasks in parallel instead of awaiting them one by one.
+	const perListTodos = await Promise.all(
+		(listsData.items ?? []).map((list: { id: string }) =>
+			fetchListTodos(list.id, accessToken, BASE_URL),
+		),
+	);
+
+	const todos = perListTodos.flat();
 	console.log("[fetchTodos] mapped todos:", todos);
 	return todos;
+}
+
+async function fetchListTodos(
+	listId: string,
+	accessToken: string,
+	BASE_URL: string,
+): Promise<Todo[]> {
+	const response = await fetch(
+		`${BASE_URL}/tasks/v1/lists/${listId}/tasks?showCompleted=false`,
+		{
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+			},
+		},
+	);
+	if (response.status === 401) throw new Error("UNAUTHENTICATED");
+	console.log("[fetchTodos] tasks response status:", response.status);
+	if (!response.ok) {
+		const body = await response.text();
+		console.error("[fetchTodos] tasks error body:", body);
+		throw new Error("Failed to fetch todos");
+	}
+	const data = await response.json();
+	console.log("[fetchTodos] raw tasks data:", data);
+
+	return (data.items ?? []).map(
+		(item: {
+			id: string;
+			title: string;
+			completed?: boolean; // usually boolean, not string
+			webViewLink: string;
+		}) => ({
+			id: item.id,
+			text: item.title,
+			done: !!item.completed,
+			webViewLink: item.webViewLink,
+			listId,
+			priority: "medium" as TodoPriority,
+			badge: priorityColor.medium,
+		}),
+	);
 }
 
 export async function fetchAssignments(
@@ -91,7 +104,7 @@ export async function fetchAssignments(
 	});
 
 	console.log("[fetchAssignments] courses response status:", coursesRes.status);
-
+	if (coursesRes.status === 401) throw new Error("UNAUTHENTICATED");
 	if (!coursesRes.ok) {
 		const body = await coursesRes.text();
 		console.error("[fetchAssignments] courses error body:", body);
@@ -103,116 +116,136 @@ export async function fetchAssignments(
 	const courses = coursesData.courses || [];
 	console.log("[fetchAssignments] courses found:", courses.length);
 
-	const assignments: Assignment[] = [];
+	// Fetch every course's assignments in parallel, then resolve each
+	// assignment's submission state in parallel, instead of awaiting them
+	// one at a time in nested loops.
+	const perCourseAssignments = await Promise.all(
+		courses.map((course: { id: string; name: string }) =>
+			fetchCourseAssignments(course, accessToken, BASE_URL),
+		),
+	);
 
-	for (const course of courses) {
-		console.log(
-			"[fetchAssignments] fetching courseWork for course:",
-			course.id,
-			course.name,
-		);
-
-		const assignmentsUrl = new URL(
-			`/v1/courses/${course.id}/courseWork`,
-			BASE_URL,
-		);
-		assignmentsUrl.search = new URLSearchParams({
-			orderBy: "dueDate asc",
-			pageSize: Number(10).toString(),
-		}).toString();
-
-		console.log(
-			"[fetchAssignments] courseWork URL:",
-			assignmentsUrl.toString(),
-		);
-
-		const assignmentsRes = await fetch(assignmentsUrl.toString(), {
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-			},
-		});
-
-		console.log(
-			"[fetchAssignments] courseWork response status:",
-			assignmentsRes.status,
-			"for course:",
-			course.id,
-		);
-
-		if (!assignmentsRes.ok) {
-			const body = await assignmentsRes.text();
-			console.error(
-				"[fetchAssignments] courseWork error body:",
-				body,
-				"for course:",
-				course.id,
-			);
-			// Changed from throwing an error to 'continue' so one failing course
-			// doesn't break the entire application.
-			continue;
-		}
-
-		const assignmentsData = await assignmentsRes.json();
-		const courseAssignments = assignmentsData.courseWork;
-
-		console.log(
-			"[fetchAssignments] courseAssignments count:",
-			courseAssignments?.length ?? 0,
-		);
-
-		// Safeguard against courses with zero assignments
-		if (!courseAssignments) {
-			continue;
-		}
-
-		for (const assignment of courseAssignments) {
-			const submissionUrl = new URL(
-				`/v1/courses/${course.id}/courseWork/${assignment.id}/studentSubmissions`,
-				BASE_URL,
-			);
-			submissionUrl.search = new URLSearchParams({ userId: "me" }).toString();
-
-			const submissionRes = await fetch(submissionUrl.toString(), {
-				headers: {
-					Authorization: `Bearer ${accessToken}`,
-				},
-			});
-
-			if (!submissionRes.ok) {
-				console.error(
-					`[fetchAssignments] Failed to fetch submission status for assignment:`,
-					assignment.id,
-				);
-				continue;
-			}
-
-			const submissionData = await submissionRes.json();
-			const submissions = submissionData.studentSubmissions;
-
-			// Determine the submission state
-			const state =
-				submissions && submissions.length > 0 ? submissions[0].state : "NEW";
-
-			// Skip pushing this assignment if it is already turned in or graded
-			if (state === "TURNED_IN" || state === "RETURNED") {
-				continue;
-			}
-
-			assignments.push({
-				id: assignment.id,
-				course: course.name,
-				title: assignment.title,
-				due:
-					GoogleDateToLocalDate(assignment.dueDate, assignment.dueTime) || "",
-				hasAttachment: false,
-			});
-		}
-	}
+	const assignments: Assignment[] = perCourseAssignments.flat();
 
 	console.log(
 		`[fetchAssignments] finished. Total active assignments found: ${assignments.length}`,
 	);
 	return assignments;
+}
+
+async function fetchCourseAssignments(
+	course: { id: string; name: string },
+	accessToken: string,
+	BASE_URL: string,
+): Promise<Assignment[]> {
+	console.log(
+		"[fetchAssignments] fetching courseWork for course:",
+		course.id,
+		course.name,
+	);
+
+	const assignmentsUrl = new URL(
+		`/v1/courses/${course.id}/courseWork`,
+		BASE_URL,
+	);
+	assignmentsUrl.search = new URLSearchParams({
+		orderBy: "dueDate asc",
+		pageSize: Number(10).toString(),
+	}).toString();
+
+	const assignmentsRes = await fetch(assignmentsUrl.toString(), {
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+
+	console.log(
+		"[fetchAssignments] courseWork response status:",
+		assignmentsRes.status,
+		"for course:",
+		course.id,
+	);
+
+	if (!assignmentsRes.ok) {
+		const body = await assignmentsRes.text();
+		console.error(
+			"[fetchAssignments] courseWork error body:",
+			body,
+			"for course:",
+			course.id,
+		);
+		// Skip this course rather than failing the whole request.
+		return [];
+	}
+
+	const assignmentsData = await assignmentsRes.json();
+	const courseAssignments = assignmentsData.courseWork;
+
+	console.log(
+		"[fetchAssignments] courseAssignments count:",
+		courseAssignments?.length ?? 0,
+	);
+
+	// Safeguard against courses with zero assignments
+	if (!courseAssignments) {
+		return [];
+	}
+
+	const resolved = await Promise.all(
+		courseAssignments.map(
+			async (assignment: {
+				id: string;
+				title: string;
+				dueDate?: { year: number; month: number; day: number };
+				dueTime?: { hours?: number; minutes?: number; seconds?: number };
+			}): Promise<Assignment | null> => {
+				const submissionUrl = new URL(
+					`/v1/courses/${course.id}/courseWork/${assignment.id}/studentSubmissions`,
+					BASE_URL,
+				);
+				submissionUrl.search = new URLSearchParams({
+					userId: "me",
+				}).toString();
+
+				const submissionRes = await fetch(submissionUrl.toString(), {
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				});
+
+				if (!submissionRes.ok) {
+					console.error(
+						`[fetchAssignments] Failed to fetch submission status for assignment:`,
+						assignment.id,
+					);
+					return null;
+				}
+
+				const submissionData = await submissionRes.json();
+				const submissions = submissionData.studentSubmissions;
+
+				// Determine the submission state
+				const state =
+					submissions && submissions.length > 0 ? submissions[0].state : "NEW";
+
+				// Skip this assignment if it is already turned in or graded
+				if (state === "TURNED_IN" || state === "RETURNED") {
+					return null;
+				}
+
+				return {
+					id: assignment.id,
+					course: course.name,
+					title: assignment.title,
+					due:
+						GoogleDateToLocalDate(assignment.dueDate, assignment.dueTime) || "",
+					hasAttachment: false,
+				} satisfies Assignment;
+			},
+		),
+	);
+
+	return resolved.filter((a): a is Assignment => a !== null);
 }
 export type Email = {
 	id: number;
@@ -238,6 +271,7 @@ export async function fetchEmails(accessToken: string): Promise<Email[]> {
 		},
 	});
 
+	if (listRes.status === 401) throw new Error("UNAUTHENTICATED");
 	if (!listRes.ok) {
 		throw new Error("Failed to fetch message list");
 	}
@@ -269,7 +303,8 @@ export async function fetchEmails(accessToken: string): Promise<Email[]> {
 			const headers = message.payload.headers;
 
 			const getHeader = (name: string) =>
-				headers.find((h: any) => h.name === name)?.value ?? "";
+				headers.find((h: { name: string; value: string }) => h.name === name)
+					?.value ?? "";
 
 			return {
 				id: index,
@@ -313,7 +348,45 @@ export async function fetchCalendarEvents(
 	const timeMax = endOfDay.toISOString();
 	console.log("[fetchCalendarEvents] timeMin:", timeMin, "timeMax:", timeMax);
 
-	const url = new URL(`${BASE_URL}/calendars/primary/events`);
+	const listRes = await fetch(`${BASE_URL}/users/me/calendarList`, {
+		headers: { Authorization: `Bearer ${accessToken}` },
+	});
+	console.log(
+		"[fetchCalendarEvents] calendarList response status:",
+		listRes.status,
+	);
+	if (listRes.status === 401) throw new Error("UNAUTHENTICATED");
+	if (!listRes.ok) {
+		const body = await listRes.text();
+		console.error("[fetchCalendarEvents] calendarList error body:", body);
+		throw new Error("Failed to fetch calendar list");
+	}
+	const listData = await listRes.json();
+	const calendars: { id: string; summary: string; primary?: boolean }[] =
+		listData.items ?? [];
+	console.log("[fetchCalendarEvents] calendars found:", calendars.length);
+
+	const perCalendarEvents = await Promise.all(
+		calendars.map((cal) =>
+			fetchCalendarEventsForCal(cal, accessToken, BASE_URL, timeMin, timeMax),
+		),
+	);
+
+	const events = perCalendarEvents.flat();
+	console.log("[fetchCalendarEvents] total events:", events.length);
+	return events.sort((a, b) => a.isoTime.localeCompare(b.isoTime));
+}
+
+async function fetchCalendarEventsForCal(
+	calendar: { id: string; summary: string; primary?: boolean },
+	accessToken: string,
+	BASE_URL: string,
+	timeMin: string,
+	timeMax: string,
+): Promise<CalendarEvent[]> {
+	const url = new URL(
+		`${BASE_URL}/calendars/${encodeURIComponent(calendar.id)}/events`,
+	);
 	url.search = new URLSearchParams({
 		timeMin,
 		timeMax,
@@ -325,15 +398,24 @@ export async function fetchCalendarEvents(
 	const res = await fetch(url.toString(), {
 		headers: { Authorization: `Bearer ${accessToken}` },
 	});
-	console.log("[fetchCalendarEvents] response status:", res.status);
+	console.log(
+		"[fetchCalendarEvents] events response status:",
+		res.status,
+		"for calendar:",
+		calendar.summary,
+	);
 	if (!res.ok) {
 		const body = await res.text();
-		console.error("[fetchCalendarEvents] error body:", body);
-		throw new Error("Failed to fetch calendar events");
+		console.error(
+			"[fetchCalendarEvents] events error body:",
+			body,
+			"for calendar:",
+			calendar.id,
+		);
+		return [];
 	}
 	const data = await res.json();
-	console.log("[fetchCalendarEvents] raw data:", data);
-	const events = (data.items ?? []).map(
+	const events: CalendarEvent[] = (data.items ?? []).map(
 		(
 			item: {
 				id: string;
@@ -342,21 +424,23 @@ export async function fetchCalendarEvents(
 				colorId?: string;
 			},
 			index: number,
-		) => ({
-			id: index,
-			title: item.summary ?? "(No title)",
-			time: item.start?.dateTime
-				? new Date(item.start.dateTime).toLocaleString()
-				: (item.start?.date ?? ""),
-			color: item.colorId
-				? (EVENT_COLORS[item.colorId] ?? "#039be5")
-				: "#039be5",
-		}),
+		) => {
+			const isoTime = item.start?.dateTime ?? item.start?.date ?? "";
+			return {
+				id: index,
+				title: item.summary ?? "(No title)",
+				isoTime,
+				time: item.start?.dateTime
+					? new Date(item.start.dateTime).toLocaleString()
+					: (item.start?.date ?? ""),
+				color: item.colorId
+					? (EVENT_COLORS[item.colorId] ?? "#039be5")
+					: "#039be5",
+				calendarName: calendar.summary,
+			} satisfies CalendarEvent;
+		},
 	);
-	console.log("[fetchCalendarEvents] mapped events:", events);
-	return events.sort((a: { isoDate: string }, b: { isoDate: any }) => {
-		return a.isoDate.localeCompare(b.isoDate);
-	});
+	return events;
 }
 
 export interface WeatherData {

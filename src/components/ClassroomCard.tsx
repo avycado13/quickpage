@@ -13,6 +13,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "./AuthProvider";
 
+function getUrgencyBadge(due: string) {
+	const now = new Date();
+	const dueDate = new Date(due);
+	const todayMidnight = new Date();
+	todayMidnight.setHours(0, 0, 0, 0);
+	const dueMidnight = new Date(dueDate);
+	dueMidnight.setHours(0, 0, 0, 0);
+	const diffDays = Math.floor(
+		(dueMidnight.getTime() - todayMidnight.getTime()) / 86400000,
+	);
+	if (dueDate < now && diffDays < 0)
+		return <Badge variant="destructive">Overdue</Badge>;
+	if (diffDays === 0) return <Badge variant="destructive">Today</Badge>;
+	if (diffDays === 1) return <Badge variant="secondary">Tomorrow</Badge>;
+	return null;
+}
+
 export function ClassroomCard() {
 	const { accessToken } = useAuth();
 	const { data: assignments = [] } = useQuery({
@@ -24,7 +41,7 @@ export function ClassroomCard() {
 		return assignments.toSorted(
 			(a, b) => Date.parse(a.due) - Date.parse(b.due),
 		);
-	}, [assignments.toSorted]);
+	}, [assignments]);
 	return (
 		<>
 			<CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
@@ -59,7 +76,7 @@ export function ClassroomCard() {
 											<Badge variant="outline" className="shrink-0">
 												{a.course}
 											</Badge>
-
+											{getUrgencyBadge(a.due)}
 											{a.hasAttachment && (
 												<Paperclip className="h-3 w-3 text-muted-foreground" />
 											)}

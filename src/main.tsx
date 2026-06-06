@@ -9,9 +9,15 @@ import { AuthProvider } from "./components/AuthProvider.tsx";
 import { ThemeProvider } from "./components/theme-provider.tsx";
 import { UnitProvider } from "./components/unit-context.tsx";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			staleTime: 5 * 60 * 1000,
+		},
+	},
+});
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById("root") as HTMLElement).render(
 	<StrictMode>
 		<meta
 			name="google-site-verification"

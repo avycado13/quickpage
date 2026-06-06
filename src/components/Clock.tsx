@@ -1,27 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+
+// Created once, reused on every tick instead of rebuilding a formatter each second.
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+	dateStyle: "short",
+	timeStyle: "medium",
+});
+
+function greetingFor(hours: number) {
+	if (hours < 12) return "Good morning";
+	if (hours < 18) return "Good afternoon";
+	return "Good evening";
+}
 
 export function Clock() {
-	const [now, setNow] = useState(Date.now());
+	const [now, setNow] = useState(() => Date.now());
 
 	useEffect(() => {
 		const id = setInterval(() => setNow(Date.now()), 1000);
 		return () => clearInterval(id);
 	}, []);
 
-	const { greeting, dateStr } = useMemo(() => {
-		const d = new Date(now);
+	const d = new Date(now);
+	const greeting = greetingFor(d.getHours());
+	const dateStr = dateFormatter.format(d);
 
-		return {
-			greeting:
-				d.getHours() < 12
-					? "Good morning"
-					: d.getHours() < 18
-						? "Good afternoon"
-						: "Good evening",
-
-			dateStr: d.toLocaleString("en-US"),
-		};
-	}, [now]);
 	return (
 		<div>
 			<h1 className="text-3xl font-bold tracking-tight">{greeting}</h1>

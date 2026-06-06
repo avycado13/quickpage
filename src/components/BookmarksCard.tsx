@@ -47,8 +47,9 @@ export function BookmarkCard() {
 		setOpen(false);
 	};
 	const deleteBookmark = (bookmark: Bookmark) => {
-		setBookmarks(bookmarks.filter((item) => item !== bookmark));
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks));
+		const next = bookmarks.filter((item) => item !== bookmark);
+		setBookmarks(next);
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 	};
 
 	return (
