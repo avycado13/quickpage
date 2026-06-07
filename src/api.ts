@@ -4,6 +4,7 @@ import {
 	priorityColor,
 	type Todo,
 	type TodoPriority,
+	type Email,
 } from "./types";
 
 export async function fetchTodos(accessToken: string): Promise<Todo[]> {
@@ -247,13 +248,6 @@ async function fetchCourseAssignments(
 
 	return resolved.filter((a): a is Assignment => a !== null);
 }
-export type Email = {
-	id: number;
-	from: string;
-	subject: string;
-	time: string;
-	unread: boolean;
-};
 
 export async function fetchEmails(accessToken: string): Promise<Email[]> {
 	const BASE_URL = "https://www.googleapis.com/gmail/v1/users/me";
@@ -264,12 +258,15 @@ export async function fetchEmails(accessToken: string): Promise<Email[]> {
 		throw new Error("Missing Gmail access token");
 	}
 
-	// 1️⃣ Get message list
-	const listRes = await fetch(`${BASE_URL}/messages?maxResults=10`, {
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
+	// 1️⃣ Get message list (inbox only, newest 10)
+	const listRes = await fetch(
+		`${BASE_URL}/messages?maxResults=10&labelIds=INBOX`,
+		{
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+			},
 		},
-	});
+	);
 
 	if (listRes.status === 401) throw new Error("UNAUTHENTICATED");
 	if (!listRes.ok) {

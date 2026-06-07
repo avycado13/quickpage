@@ -68,7 +68,7 @@ function App() {
 
 	const login = useGoogleLogin({
 		scope:
-			"openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/calendar.readonly",
+			"openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly",
 		onSuccess: handleLoginSuccess,
 		onError: () => {
 			console.log("Login Failed");

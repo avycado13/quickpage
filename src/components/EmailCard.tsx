@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Mail } from "lucide-react";
+import { fetchEmails } from "@/api";
 import {
 	CardContent,
 	CardDescription,
@@ -7,13 +9,16 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import type { Email } from "@/types";
+import { useAuth } from "./AuthProvider";
 
-interface EmailCardProps {
-	emails: Email[];
-}
+export function EmailCard() {
+	const { accessToken } = useAuth();
+	const { data: emails = [] } = useQuery({
+		queryKey: ["emails", accessToken],
+		queryFn: () => fetchEmails(accessToken || ""),
+		enabled: !!accessToken,
+	});
 
-export function EmailCard({ emails }: EmailCardProps) {
 	return (
 		<>
 			<CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">

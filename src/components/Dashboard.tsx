@@ -20,7 +20,6 @@ import { EmailCard } from "@/components/EmailCard";
 import { ScratchpadCard } from "@/components/ScratchpadCard";
 import { SortableCard } from "@/components/SortableCard";
 import { TodoCard } from "@/components/TodoCard";
-import { mockEmails } from "@/data/mock";
 import { type CardId, defaultCardOrder } from "@/types";
 import { BookmarkCard } from "./BookmarksCard";
 
@@ -75,7 +74,7 @@ export default function Dashboard({ visibleCards }: DashboardProps) {
 				<div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
 					{dashboardCards.map((id) => (
 						<SortableCard key={id} id={id}>
-							{id === "email" && <EmailCard emails={mockEmails} />}
+							{id === "email" && <EmailCard />}
 							{id === "calendar" && <CalendarCard />}
 							{id === "todo" && <TodoCard />}
 							{id === "classroom" && <ClassroomCard />}
