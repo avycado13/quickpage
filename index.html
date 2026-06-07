@@ -6,6 +6,15 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>quickpage</title>
+    <style>
+      /* Sticky-footer layout: pins the footer to the bottom of the viewport
+         from first paint so it doesn't shift when React swaps #root's
+         contents (avoids cumulative layout shift). */
+      html, body { margin: 0; min-height: 100dvh; }
+      body { display: flex; flex-direction: column; }
+      #root { flex: 1 0 auto; }
+      footer { flex-shrink: 0; }
+    </style>
   </head>
   <body>
     <div id="root">
