@@ -44,31 +44,37 @@ export function EmailCard() {
 			<CardContent className="p-0">
 				<ScrollArea className="h-72">
 					{emails.map((email) => (
-						<div key={email.id}>
-							<button
-								type="button"
-								className="flex w-full items-start gap-3 px-6 py-3 text-left hover:bg-muted/50 transition-colors"
+						<div key={email.googleId}>
+							<a
+								href={`https://mail.google.com/mail/u/0/#all/${email.googleId}`}
+								target="_blank"
+								rel="noopener"
 							>
-								{email.unread && (
-									<span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
-								)}
-								<div
-									className={`min-w-0 flex-1 ${!email.unread ? "ml-5" : ""}`}
+								<button
+									type="button"
+									className="flex w-full items-start gap-3 px-6 py-3 text-left hover:bg-muted/50 transition-colors"
 								>
-									<p
-										className={`truncate text-sm ${email.unread ? "font-semibold" : ""}`}
+									{email.unread && (
+										<span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+									)}
+									<div
+										className={`min-w-0 flex-1 ${!email.unread ? "ml-5" : ""}`}
 									>
-										{email.from}
-									</p>
-									<p className="truncate text-sm text-muted-foreground">
-										{email.subject}
-									</p>
-								</div>
-								<span className="shrink-0 text-xs text-muted-foreground">
-									{email.time}
-								</span>
-							</button>
-							<Separator />
+										<p
+											className={`truncate text-sm ${email.unread ? "font-semibold" : ""}`}
+										>
+											{email.from}
+										</p>
+										<p className="truncate text-sm text-muted-foreground">
+											{email.subject}
+										</p>
+									</div>
+									<span className="shrink-0 text-xs text-muted-foreground">
+										{email.time}
+									</span>
+								</button>
+								<Separator />
+							</a>
 						</div>
 					))}
 				</ScrollArea>

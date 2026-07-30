@@ -14,6 +14,7 @@ import {
 	sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { useState } from "react";
+import { BirthdayCard } from "@/components/BirthdayCard";
 import { CalendarCard } from "@/components/CalendarCard";
 import { ClassroomCard } from "@/components/ClassroomCard";
 import { EmailCard } from "@/components/EmailCard";
@@ -81,6 +82,7 @@ export default function Dashboard({ visibleCards }: DashboardProps) {
 							{id === "scratchpad" && <ScratchpadCard />}
 
 							{id === "bookmarks" && <BookmarkCard />}
+						{id === "birthday" && <BirthdayCard />}
 						</SortableCard>
 					))}
 					{dashboardCards.length === 0 && (

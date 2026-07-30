@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
 import {
 	type CardId,
 	defaultCardOrder,
@@ -40,6 +41,8 @@ function App() {
 		return stored ? JSON.parse(stored) : null;
 	});
 
+	const [sessionExpired, setSessionExpired] = useState(false);
+
 	const clearGoogleAuth = useCallback(() => {
 		setProfile(null);
 		setAccessToken(null);
@@ -50,6 +53,7 @@ function App() {
 		async (tokenResponse: { access_token: string }) => {
 			try {
 				setAccessToken(tokenResponse.access_token);
+				setSessionExpired(false);
 				const res = await fetch(
 					"https://www.googleapis.com/oauth2/v3/userinfo",
 					{
@@ -68,7 +72,7 @@ function App() {
 
 	const login = useGoogleLogin({
 		scope:
-			"openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly",
+			"openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/contacts.readonly",
 		onSuccess: handleLoginSuccess,
 		onError: () => {
 			console.log("Login Failed");
@@ -87,14 +91,15 @@ function App() {
 		const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
 			const error = event.query.state.error;
 			if (error instanceof Error && error.message === "UNAUTHENTICATED") {
-				handleLogout();
-				toast("Session expired", {
-					description: "Your Google session expired. Please sign in again.",
-				});
+				// Keep the profile and dashboard layout in place; just drop the
+				// expired token (which stops further data queries) and surface a
+				// persistent banner prompting the user to sign in again.
+				setAccessToken(null);
+				setSessionExpired(true);
 			}
 		});
 		return unsubscribe;
-	}, [queryClient, handleLogout]);
+	}, [queryClient, setAccessToken]);
 
 	const handleVisibleCardsChange = useCallback(
 		(nextVisibleCards: Record<CardId, boolean>) => {
@@ -148,15 +153,29 @@ function App() {
 					</div>
 				</div>
 			) : (
-				<Suspense
-					fallback={
-						<div className="py-16 text-center text-muted-foreground">
-							Loading dashboard…
+				<>
+					{sessionExpired && (
+						<div className="mb-6 flex flex-col items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+							<div>
+								<p className="font-medium">Session expired</p>
+								<p className="text-muted-foreground">
+									Your Google session expired, so your cards can't refresh. Sign
+									in again to reconnect.
+								</p>
+							</div>
+							<Button onClick={handleLogin}>Sign in again</Button>
 						</div>
-					}
-				>
-					<Dashboard visibleCards={visibleCards} />
-				</Suspense>
+					)}
+					<Suspense
+						fallback={
+							<div className="py-16 text-center text-muted-foreground">
+								Loading dashboard…
+							</div>
+						}
+					>
+						<Dashboard visibleCards={visibleCards} />
+					</Suspense>
+				</>
 			)}
 		</div>
 	);

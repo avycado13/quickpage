@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarDays, Clock } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Clock, Video } from "lucide-react";
 import { useMemo } from "react";
 import { fetchCalendarEvents } from "@/api";
 import {
@@ -11,6 +11,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { CalendarEvent } from "@/types";
 import { useAuth } from "./AuthProvider";
+import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 
 function formatDayLabel(iso: string) {
@@ -139,6 +140,24 @@ export function CalendarCard() {
 														</>
 													)}
 												</p>
+
+												{event.hangoutLink && (
+													<Button
+														asChild
+														size="xs"
+														variant="outline"
+														className="mt-2"
+													>
+														<a
+															href={event.hangoutLink}
+															target="_blank"
+															rel="noopener noreferrer"
+														>
+															<Video />
+															Join
+														</a>
+													</Button>
+												)}
 											</div>
 										</div>
 									))}

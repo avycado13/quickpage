@@ -1,10 +1,11 @@
 import {
 	type Assignment,
+	type Birthday,
 	type CalendarEvent,
+	type Email,
 	priorityColor,
 	type Todo,
 	type TodoPriority,
-	type Email,
 } from "./types";
 
 export async function fetchTodos(accessToken: string): Promise<Todo[]> {
@@ -258,7 +259,6 @@ export async function fetchEmails(accessToken: string): Promise<Email[]> {
 		throw new Error("Missing Gmail access token");
 	}
 
-	// 1️⃣ Get message list (inbox only, newest 10)
 	const listRes = await fetch(
 		`${BASE_URL}/messages?maxResults=10&labelIds=INBOX`,
 		{
@@ -279,7 +279,6 @@ export async function fetchEmails(accessToken: string): Promise<Email[]> {
 		return [];
 	}
 
-	// 2️⃣ Fetch metadata for each message
 	const emails: Email[] = await Promise.all(
 		listData.messages.map(async (msg: { id: string }, index: number) => {
 			const msgRes = await fetch(
@@ -305,13 +304,16 @@ export async function fetchEmails(accessToken: string): Promise<Email[]> {
 
 			return {
 				id: index,
+				googleId: message.id,
+				threadId: message.threadId,
 				from: getHeader("From"),
 				subject: getHeader("Subject"),
 				time: new Date(getHeader("Date")).toLocaleString(),
 				unread: message.labelIds?.includes("UNREAD") ?? false,
-			};
+			} as Email;
 		}),
 	);
+	console.log(emails);
 
 	return emails;
 }
@@ -413,18 +415,16 @@ async function fetchCalendarEventsForCal(
 	}
 	const data = await res.json();
 	const events: CalendarEvent[] = (data.items ?? []).map(
-		(
-			item: {
-				id: string;
-				summary?: string;
-				start?: { dateTime?: string; date?: string };
-				colorId?: string;
-			},
-			index: number,
-		) => {
+		(item: {
+			id: string;
+			summary?: string;
+			start?: { dateTime?: string; date?: string };
+			colorId?: string;
+			hangoutLink?: string;
+		}) => {
 			const isoTime = item.start?.dateTime ?? item.start?.date ?? "";
 			return {
-				id: index,
+				id: item.id,
 				title: item.summary ?? "(No title)",
 				isoTime,
 				time: item.start?.dateTime
@@ -434,10 +434,84 @@ async function fetchCalendarEventsForCal(
 					? (EVENT_COLORS[item.colorId] ?? "#039be5")
 					: "#039be5",
 				calendarName: calendar.summary,
+				hangoutLink: item.hangoutLink,
 			} satisfies CalendarEvent;
 		},
 	);
 	return events;
+}
+
+interface PeopleApiDate {
+	year?: number;
+	month?: number;
+	day?: number;
+}
+
+interface PeopleApiPerson {
+	resourceName: string;
+	names?: { displayName?: string }[];
+	photos?: { url?: string }[];
+	birthdays?: { date?: PeopleApiDate }[];
+}
+
+export async function fetchBirthdays(
+	accessToken: string,
+): Promise<Birthday[]> {
+	const BASE_URL = "https://people.googleapis.com/v1";
+	console.log(
+		"[fetchBirthdays] starting, accessToken present:",
+		!!accessToken,
+	);
+
+	const people: PeopleApiPerson[] = [];
+	let pageToken: string | undefined;
+
+	do {
+		const url = new URL(`${BASE_URL}/people/me/connections`);
+		url.search = new URLSearchParams({
+			personFields: "names,photos,birthdays",
+			pageSize: "200",
+			...(pageToken ? { pageToken } : {}),
+		}).toString();
+
+		const res = await fetch(url.toString(), {
+			headers: { Authorization: `Bearer ${accessToken}` },
+		});
+		console.log("[fetchBirthdays] connections response status:", res.status);
+		if (res.status === 401) throw new Error("UNAUTHENTICATED");
+		if (!res.ok) {
+			const body = await res.text();
+			console.error("[fetchBirthdays] connections error body:", body);
+			throw new Error("Failed to fetch contacts");
+		}
+
+		const data = await res.json();
+		people.push(...(data.connections ?? []));
+		pageToken = data.nextPageToken;
+	} while (pageToken);
+
+	const birthdays: Birthday[] = people.flatMap((person) => {
+		const name = person.names?.[0]?.displayName;
+		// A person can have multiple birthday entries; prefer one with a month/day.
+		const date = person.birthdays?.find((b) => b.date?.month && b.date?.day)
+			?.date;
+
+		if (!name || !date?.month || !date?.day) return [];
+
+		return [
+			{
+				id: person.resourceName,
+				name,
+				photoUrl: person.photos?.[0]?.url,
+				month: date.month,
+				day: date.day,
+				year: date.year,
+			} satisfies Birthday,
+		];
+	});
+
+	console.log("[fetchBirthdays] birthdays found:", birthdays.length);
+	return birthdays;
 }
 
 export interface WeatherData {

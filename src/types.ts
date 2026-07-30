@@ -1,5 +1,8 @@
 export type Email = {
 	id: number;
+	threadId: string;
+	googleId: string;
+	labelIds: [string];
 	from: string;
 	subject: string;
 	time: string;
@@ -32,12 +35,22 @@ export type Assignment = {
 };
 
 export type CalendarEvent = {
-	id: number;
+	id: string;
 	title: string;
 	time: string;
 	isoTime: string;
 	color: string;
 	calendarName: string;
+	hangoutLink?: string;
+};
+
+export type Birthday = {
+	id: string;
+	name: string;
+	photoUrl?: string;
+	month: number;
+	day: number;
+	year?: number;
 };
 
 export interface GoogleProfile {
@@ -53,6 +66,7 @@ export const defaultCardOrder = [
 	"classroom",
 	"scratchpad",
 	"bookmarks",
+	"birthday",
 ] as const;
 export type CardId = (typeof defaultCardOrder)[number];
 
@@ -63,6 +77,7 @@ export const cardLabels: Record<CardId, string> = {
 	classroom: "Classroom",
 	scratchpad: "Scratchpad",
 	bookmarks: "Bookmarks",
+	birthday: "Birthdays",
 };
 
 export const priorityColor: Record<
