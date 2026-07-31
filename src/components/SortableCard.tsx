@@ -25,7 +25,12 @@ export function SortableCard({ id, children }: SortableCardProps) {
 	};
 
 	return (
-		<div ref={setNodeRef} style={style} className="xl:col-span-2">
+		<div
+			ref={setNodeRef}
+			id={`card-${id}`}
+			style={style}
+			className="xl:col-span-2 scroll-mt-6"
+		>
 			<Card className="relative h-full">
 				<button
 					{...attributes}

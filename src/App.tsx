@@ -4,6 +4,7 @@ import { googleLogout, useGoogleLogin } from "@react-oauth/google";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
+import { CommandMenu } from "@/components/CommandMenu";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ function App() {
 	});
 
 	const [sessionExpired, setSessionExpired] = useState(false);
+	const [commandMenuOpen, setCommandMenuOpen] = useState(false);
 
 	const clearGoogleAuth = useCallback(() => {
 		setProfile(null);
@@ -114,12 +116,22 @@ function App() {
 
 	return (
 		<div className="min-h-screen bg-background p-6 md:p-10">
+			<CommandMenu
+				open={commandMenuOpen}
+				onOpenChange={setCommandMenuOpen}
+				profile={profile}
+				visibleCards={visibleCards}
+				onVisibleCardsChange={handleVisibleCardsChange}
+				onLogin={handleLogin}
+				onLogout={handleLogout}
+			/>
 			<Header
 				profile={profile}
 				onLogin={handleLogin}
 				onLogout={handleLogout}
 				visibleCards={visibleCards}
 				onVisibleCardsChange={handleVisibleCardsChange}
+				onOpenCommandMenu={() => setCommandMenuOpen(true)}
 			/>
 
 			{!profile ? (

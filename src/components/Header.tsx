@@ -1,3 +1,4 @@
+import { SearchIcon } from "lucide-react";
 import React, { useCallback } from "react";
 import { toast } from "sonner";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -16,6 +17,7 @@ interface HeaderProps {
 	onLogout: () => void;
 	visibleCards: Record<CardId, boolean>;
 	onVisibleCardsChange: (visibleCards: Record<CardId, boolean>) => void;
+	onOpenCommandMenu: () => void;
 }
 
 export const Header = React.memo(function Header({
@@ -24,6 +26,7 @@ export const Header = React.memo(function Header({
 	onLogout,
 	visibleCards,
 	onVisibleCardsChange,
+	onOpenCommandMenu,
 }: HeaderProps) {
 	const handleLogout = useCallback(() => {
 		localStorage.removeItem(PROFILE_KEY);
@@ -41,6 +44,18 @@ export const Header = React.memo(function Header({
 				<Clock />
 			</div>{" "}
 			<div className="flex items-center gap-4">
+				<Button
+					variant="outline"
+					className="gap-2 text-muted-foreground"
+					onClick={onOpenCommandMenu}
+				>
+					<SearchIcon className="size-4" />
+					<span className="hidden sm:inline">Search</span>
+					<kbd className="ml-1 hidden rounded border bg-muted px-1.5 py-0.5 text-xs sm:inline">
+						⌘K
+					</kbd>
+				</Button>
+				<div className="w-px h-4 bg-border" />
 				<div className="w-32">
 					<Weather />
 				</div>{" "}
