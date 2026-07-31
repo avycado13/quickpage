@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CalendarDays, Clock, Video } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchCalendarEvents } from "@/api";
 import {
 	CardContent,
@@ -12,6 +12,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { CalendarEvent } from "@/types";
 import { useAuth } from "./AuthProvider";
 import { Button } from "./ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Separator } from "./ui/separator";
 
 function formatDayLabel(iso: string) {
@@ -33,13 +39,23 @@ export function CalendarCard() {
 		queryFn: () => fetchCalendarEvents(accessToken || ""),
 		enabled: !!accessToken,
 	});
+	const [selectedCalendars, setSelectedCalendars] = useState<string[]>([]);
 	/* sort events chronologically */
 
+	const filteredEvents = useMemo(() => {
+		if (selectedCalendars.length === 0) return events;
+
+		return events.filter(
+			(event) =>
+				!event.calendarName || selectedCalendars.includes(event.calendarName),
+		);
+	}, [events, selectedCalendars]);
+
 	const sortedEvents = useMemo(() => {
-		return [...events].sort(
+		return [...filteredEvents].sort(
 			(a, b) => new Date(a.isoTime).getTime() - new Date(b.isoTime).getTime(),
 		);
-	}, [events]);
+	}, [filteredEvents]);
 	/* group events by day */
 	const groupedEvents = useMemo(() => {
 		return Object.groupBy(sortedEvents, (event) => getDayKey(event.isoTime));
@@ -74,6 +90,17 @@ export function CalendarCard() {
 			})()
 		: "No upcoming events";
 
+	const calendars = useMemo(() => {
+		return [
+			...new Set(events.map((e) => e.calendarName).filter(Boolean)),
+		] as string[];
+	}, [events]);
+	useEffect(() => {
+		if (selectedCalendars.length === 0 && calendars.length > 0) {
+			setSelectedCalendars(calendars);
+		}
+	}, [calendars, selectedCalendars.length]);
+
 	return (
 		<>
 			{/* HEADER */}
@@ -85,23 +112,48 @@ export function CalendarCard() {
 						<CardTitle>Today</CardTitle>
 						<CardDescription>{events.length} events</CardDescription>
 					</div>
+					<a
+						href="https://calendar.google.com"
+						target="_blank"
+						rel="noopener noreferrer"
+					>
+						<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+					</a>
 				</div>
-
-				<a
-					href="https://calendar.google.com"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<ArrowUpRight className="h-5 w-5 text-muted-foreground" />
-				</a>
 			</CardHeader>
 
 			{/* CONTENT */}
 			<CardContent className="p-0">
-				<div className="px-6 pb-2 text-sm text-muted-foreground">
-					Next event in: {nextEventText}
-				</div>
+				<div className="flex items-center justify-between px-6 pb-2">
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="outline" size="sm">
+								Calendars
+							</Button>
+						</DropdownMenuTrigger>
 
+						<DropdownMenuContent align="start">
+							{calendars.map((calendar) => (
+								<DropdownMenuCheckboxItem
+									key={calendar}
+									checked={selectedCalendars.includes(calendar)}
+									onCheckedChange={(checked) => {
+										setSelectedCalendars((prev) =>
+											checked
+												? [...prev, calendar]
+												: prev.filter((c) => c !== calendar),
+										);
+									}}
+								>
+									{calendar}
+								</DropdownMenuCheckboxItem>
+							))}
+						</DropdownMenuContent>
+					</DropdownMenu>{" "}
+					<span className="text-sm text-muted-foreground">
+						Next event in: {nextEventText}
+					</span>{" "}
+				</div>
 				<ScrollArea className="h-72">
 					<div className="space-y-4 px-6 py-3">
 						{groupedEntries.map(([dayKey, dayEvents]) => (

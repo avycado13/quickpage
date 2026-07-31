@@ -67,6 +67,7 @@ export const defaultCardOrder = [
 	"scratchpad",
 	"bookmarks",
 	"birthday",
+	"quote",
 ] as const;
 export type CardId = (typeof defaultCardOrder)[number];
 
@@ -78,6 +79,7 @@ export const cardLabels: Record<CardId, string> = {
 	scratchpad: "Scratchpad",
 	bookmarks: "Bookmarks",
 	birthday: "Birthdays",
+	quote: "Quote of the Day",
 };
 
 export const priorityColor: Record<

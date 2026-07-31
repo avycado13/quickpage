@@ -454,14 +454,9 @@ interface PeopleApiPerson {
 	birthdays?: { date?: PeopleApiDate }[];
 }
 
-export async function fetchBirthdays(
-	accessToken: string,
-): Promise<Birthday[]> {
+export async function fetchBirthdays(accessToken: string): Promise<Birthday[]> {
 	const BASE_URL = "https://people.googleapis.com/v1";
-	console.log(
-		"[fetchBirthdays] starting, accessToken present:",
-		!!accessToken,
-	);
+	console.log("[fetchBirthdays] starting, accessToken present:", !!accessToken);
 
 	const people: PeopleApiPerson[] = [];
 	let pageToken: string | undefined;
@@ -493,8 +488,9 @@ export async function fetchBirthdays(
 	const birthdays: Birthday[] = people.flatMap((person) => {
 		const name = person.names?.[0]?.displayName;
 		// A person can have multiple birthday entries; prefer one with a month/day.
-		const date = person.birthdays?.find((b) => b.date?.month && b.date?.day)
-			?.date;
+		const date = person.birthdays?.find(
+			(b) => b.date?.month && b.date?.day,
+		)?.date;
 
 		if (!name || !date?.month || !date?.day) return [];
 
@@ -545,6 +541,18 @@ export async function fetchWeather(): Promise<WeatherData> {
 		temp: Math.round(data.current.temperature_2m),
 		code: data.current.weather_code,
 	};
+}
+
+export interface Quote {
+	text: string;
+	author: string;
+}
+
+export async function fetchQuote(): Promise<Quote> {
+	const res = await fetch("https://dummyjson.com/quotes/random");
+	if (!res.ok) throw new Error("Failed to fetch quote");
+	const data = await res.json();
+	return { text: data.quote, author: data.author };
 }
 
 function GoogleDateToLocalDate(

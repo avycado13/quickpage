@@ -23,7 +23,11 @@ function nextOccurrence(birthday: Birthday, from: Date): Date {
 }
 
 function daysUntilLabel(target: Date, from: Date): string {
-	const startOfFrom = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+	const startOfFrom = new Date(
+		from.getFullYear(),
+		from.getMonth(),
+		from.getDate(),
+	);
 	const diffDays = Math.round(
 		(target.getTime() - startOfFrom.getTime()) / (1000 * 60 * 60 * 24),
 	);

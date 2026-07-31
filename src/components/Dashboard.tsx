@@ -18,6 +18,7 @@ import { BirthdayCard } from "@/components/BirthdayCard";
 import { CalendarCard } from "@/components/CalendarCard";
 import { ClassroomCard } from "@/components/ClassroomCard";
 import { EmailCard } from "@/components/EmailCard";
+import { QuoteCard } from "@/components/QuoteCard";
 import { ScratchpadCard } from "@/components/ScratchpadCard";
 import { SortableCard } from "@/components/SortableCard";
 import { TodoCard } from "@/components/TodoCard";
@@ -82,7 +83,8 @@ export default function Dashboard({ visibleCards }: DashboardProps) {
 							{id === "scratchpad" && <ScratchpadCard />}
 
 							{id === "bookmarks" && <BookmarkCard />}
-						{id === "birthday" && <BirthdayCard />}
+							{id === "birthday" && <BirthdayCard />}
+							{id === "quote" && <QuoteCard />}
 						</SortableCard>
 					))}
 					{dashboardCards.length === 0 && (
