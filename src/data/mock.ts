@@ -40,6 +40,9 @@ import type { Email } from "../types";
 export const mockEmails: Email[] = [
 	{
 		id: 1,
+		threadId: "mock-thread-1",
+		googleId: "mock-google-1",
+		labelIds: ["UNREAD"],
 		from: "QuickPage",
 		subject: "Email widget does not work at the moment",
 		time: "10:32 AM",
